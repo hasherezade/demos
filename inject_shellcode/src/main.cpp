@@ -73,7 +73,7 @@ bool inject_in_new_process(DWORD mode)
     switch (mode) {
     case ADD_THREAD:
         remote_shellcode_ptr = map_code_into_process(pi.hProcess, g_Shellcode, sizeof(g_Shellcode));
-        run_shellcode_in_new_thread1(pi.hProcess, remote_shellcode_ptr);
+        run_shellcode_in_new_thread(pi.hProcess, remote_shellcode_ptr);
         // not neccessery to resume the main thread
         break;
     case ADD_APC:
@@ -121,7 +121,6 @@ int main()
              printf("[SUCCESS] Code injected in a new process!\n");
         }
     }
-    Sleep(3000);
-    TerminateProcess(GetCurrentProcess(), STATUS_SUCCESS);
+    system("pause");
     return 0;
 }

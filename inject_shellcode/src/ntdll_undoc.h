@@ -45,6 +45,19 @@ NTSTATUS (NTAPI *ZwQueryInformationProcess) (
   PULONG  ReturnLength  OPTIONAL
 );
 
+NTSTATUS (NTAPI  *RtlCreateUserThread) (
+  _In_ HANDLE ProcessHandle,
+  _In_ PSECURITY_DESCRIPTOR SecurityDescriptor OPTIONAL,
+  _In_ BOOLEAN CreateSuspended,
+  _In_ ULONG StackZeroBits,
+  _In_ _Out_ PULONG StackReserved,
+  _In_ _Out_ PULONG StackCommit,
+  _In_ PVOID StartAddress,
+  _In_ PVOID StartParameter OPTIONAL,
+  _Out_ PHANDLE ThreadHandle,
+  _Out_ PCLIENT_ID ClientID
+  );
+
 BOOL load_ntdll_functions()
 {
     HMODULE hNtdll = GetModuleHandleA("ntdll");
@@ -58,6 +71,9 @@ BOOL load_ntdll_functions()
 
     ZwCreateThreadEx = (NTSTATUS (NTAPI *) (PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES, HANDLE, PVOID, PVOID, ULONG, ULONG_PTR, SIZE_T, SIZE_T, PVOID)) GetProcAddress(hNtdll,"ZwCreateThreadEx");
     if (ZwCreateThreadEx == NULL) return FALSE;
+
+    RtlCreateUserThread = (NTSTATUS (NTAPI *) (HANDLE, PSECURITY_DESCRIPTOR, BOOLEAN,ULONG, PULONG, PULONG, PVOID, PVOID, PHANDLE, PCLIENT_ID)) GetProcAddress(hNtdll,"RtlCreateUserThread");
+    if (RtlCreateUserThread == NULL) return FALSE;
 
     ZwQueryInformationProcess = (NTSTATUS (NTAPI *)(HANDLE, PROCESSINFOCLASS, PVOID, ULONG, PULONG)) GetProcAddress(hNtdll,"ZwQueryInformationProcess");
     if (ZwQueryInformationProcess == NULL) return FALSE;
