@@ -23,15 +23,15 @@ bool run_shellcode_in_new_thread1(HANDLE hProcess, LPVOID remote_shellcode_ptr)
 bool run_shellcode_in_new_thread2(HANDLE hProcess, LPVOID remote_shellcode_ptr)
 {
     NTSTATUS status = NULL;
-    HANDLE threadHandle = NULL;
+    HANDLE hMyThread = NULL;
     //create a new thread for the injected code:
-    if ((status = ZwCreateThreadEx(&threadHandle, 0x1FFFFF, NULL, hProcess, remote_shellcode_ptr, NULL, CREATE_SUSPENDED, 0, 0, 0, 0)) != STATUS_SUCCESS)
+    if ((status = ZwCreateThreadEx(&hMyThread, 0x1FFFFF, NULL, hProcess, remote_shellcode_ptr, NULL, CREATE_SUSPENDED, 0, 0, 0, 0)) != STATUS_SUCCESS)
     {
         printf("[ERROR] ZwCreateThreadEx failed, status : %x\n", status);
         return false;
     }
-    printf("Created Thread, id = %x\n", GetThreadId(threadHandle));
+    printf("Created Thread, id = %x\n", GetThreadId(hMyThread));
     printf("Resuming added thread...\n");
-    ResumeThread(threadHandle); //injected code
+    ResumeThread(hMyThread); //injected code
     return true;
 }

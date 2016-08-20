@@ -1,5 +1,11 @@
 # inject_shellcode
-Various injection methods in one demo
+Small compendium of injection techniques commonly used in malware demonstrated on metasploit-generated shellcode<br/>
+
+Various objects of injection:<br/>
++ existing process (found by name)
++ newly created process
+
+Demonstrated methods:<br/>
 + Running shellcode in a new thread
 + Adding shellcode into existing thread (using NtQueueApcThread)
 + Patching Entry Point of application

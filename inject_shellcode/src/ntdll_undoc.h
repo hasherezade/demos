@@ -4,6 +4,9 @@
 #include "ntddk.h"
 
 //undocumented functions from ntdll.dll
+//
+//don't forget to load functiond before use:
+//load_ntdll_functions();
 
 NTSTATUS (NTAPI *NtQueueApcThread)(
     _In_ HANDLE ThreadHandle,
@@ -42,7 +45,7 @@ NTSTATUS (__stdcall *ZwQueryInformationProcess) (
   PULONG  ReturnLength  OPTIONAL
 );
 
-BOOL load_undoc_ntdll_functions()
+BOOL load_ntdll_functions()
 {
     HMODULE hNtdll = GetModuleHandleA("ntdll");
     if (hNtdll == NULL) return FALSE;

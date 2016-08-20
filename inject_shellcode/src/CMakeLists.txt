@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.8)
-project (Inject1)
+project (Injections)
 
 add_definitions(-DUNICODE -D_UNICODE)
 
@@ -11,10 +11,12 @@ set (hdrs
     main.h
 	ntddk.h
 	ntdll_undoc.h
+	kernel32_undoc.h
 	add_thread.h
 	add_apc.h
 	patch_ep.h
+	enumproc.h
     payload.h
 )
 
-add_executable (Inject1 ${hdrs} ${srcs})
+add_executable (Injections ${hdrs} ${srcs})

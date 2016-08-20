@@ -38,8 +38,9 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPBYTE shellcode, DWORD shellcodeSiz
     if (ZwQueryInformationProcess(hProcess, pic, &pbi, sizeof(PROCESS_BASIC_INFORMATION), NULL) != 0)
     {
         printf("[ERROR] ZwQueryInformation failed\n");
-        return (-1);
+        return false;
     }
+    pbi.PebBaseAddress+
 
     printf("PID = 0x%x\n", pbi.UniqueProcessId);
 
