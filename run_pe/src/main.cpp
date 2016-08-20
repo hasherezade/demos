@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
     if (runPE32(targetPath, res_data, res_size)) {
         printf("Injected!\n");
     }
-
+    VirtualFree(res_data, res_size, MEM_RELEASE);
     printf("Loaded\n");
     
     system("pause");
