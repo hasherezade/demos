@@ -28,11 +28,8 @@ bool get_calc_path(LPWSTR lpwOutPath, DWORD szOutPath)
     return true;
 }
 
-bool create_new_process1(PROCESS_INFORMATION &pi)
+bool create_new_process1(PROCESS_INFORMATION &pi, LPWSTR cmdLine)
 {
-    WCHAR lpwOutPath[MAX_PATH];
-    get_default_browser(lpwOutPath, MAX_PATH);
-
     STARTUPINFO si;
     memset(&si, 0, sizeof(STARTUPINFO));
     si.cb = sizeof(STARTUPINFO);
@@ -41,7 +38,7 @@ bool create_new_process1(PROCESS_INFORMATION &pi)
 
     if (!CreateProcess(
             NULL,
-            lpwOutPath,
+            cmdLine,
             NULL, //lpProcessAttributes
             NULL, //lpThreadAttributes
             NULL, //bInheritHandles
@@ -58,11 +55,8 @@ bool create_new_process1(PROCESS_INFORMATION &pi)
     return true;
 }
 
-bool create_new_process2(PROCESS_INFORMATION &pi)
+bool create_new_process2(PROCESS_INFORMATION &pi, LPWSTR cmdLine)
 {
-    WCHAR lpwOutPath[MAX_PATH];
-    get_default_browser(lpwOutPath, MAX_PATH);
-
     STARTUPINFO si;
     memset(&si, 0, sizeof(STARTUPINFO));
     si.cb = sizeof(STARTUPINFO);
@@ -73,7 +67,7 @@ bool create_new_process2(PROCESS_INFORMATION &pi)
     HANDLE hNewToken = NULL;
     if (!CreateProcessInternalW (hToken,
             NULL, //lpApplicationName
-            (LPWSTR) lpwOutPath, //lpCommandLine
+            (LPWSTR) cmdLine, //lpCommandLine
             NULL, //lpProcessAttributes
             NULL, //lpThreadAttributes
             NULL, //bInheritHandles
