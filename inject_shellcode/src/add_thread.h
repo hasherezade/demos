@@ -1,6 +1,7 @@
 #pragma once
 #include <stdio.h>
 #include "ntddk.h"
+#include "ntdll_undoc.h"
 
 bool run_shellcode_in_new_thread1(HANDLE hProcess, LPVOID remote_shellcode_ptr)
 {
