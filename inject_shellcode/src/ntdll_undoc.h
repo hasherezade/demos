@@ -5,7 +5,7 @@
 
 //undocumented functions from ntdll.dll
 //
-//don't forget to load functiond before use:
+//don't forget to load functions before use:
 //load_ntdll_functions();
 
 NTSTATUS (NTAPI *NtQueueApcThread)(
@@ -37,7 +37,7 @@ NTSTATUS (NTAPI *ZwCreateThreadEx) (
     _In_opt_ PVOID AttributeList 
 );
 
-NTSTATUS (__stdcall *ZwQueryInformationProcess) (
+NTSTATUS (NTAPI *ZwQueryInformationProcess) (
   HANDLE  ProcessHandle,
   PROCESSINFOCLASS  ProcessInformationClass,
   PVOID  ProcessInformation,
