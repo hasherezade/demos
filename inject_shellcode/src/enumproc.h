@@ -1,24 +1,31 @@
 #pragma once
 #include <psapi.h>
 
-bool is_searched_process( DWORD processID, LPWSTR searchedName)
+bool get_process_name(IN HANDLE hProcess, OUT LPWSTR nameBuf, IN SIZE_T nameMax)
 {
-    WCHAR szProcessName[MAX_PATH];
-
-    HANDLE hProcess = OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID );
-    if (hProcess == NULL) return false;
-
     HMODULE hMod;
     DWORD cbNeeded;
 
     if (EnumProcessModules( hProcess, &hMod, sizeof(hMod), &cbNeeded)) {
-        GetModuleBaseName( hProcess, hMod, szProcessName, MAX_PATH );
+        GetModuleBaseName( hProcess, hMod, nameBuf, nameMax );
+        return true;
+    }
+    return false;
+}
+
+bool is_searched_process( DWORD processID, LPWSTR searchedName)
+{
+    HANDLE hProcess = OpenProcess( PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID );
+    if (hProcess == NULL) return false;
+
+    WCHAR szProcessName[MAX_PATH];
+    if (get_process_name(hProcess, szProcessName, MAX_PATH)) {
         if (wcsstr(szProcessName, searchedName) != NULL) {
             printf( "%S  (PID: %u)\n", szProcessName, processID );
             CloseHandle(hProcess);
             return true;   
         }
-    }
+   }
     CloseHandle(hProcess);
     return false;
 }

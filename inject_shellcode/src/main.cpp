@@ -118,7 +118,7 @@ int main()
     if (inject_in_existing_process()) {
         printf("[SUCCESS] Code injected in existing process!\n");
     } else {
-        if (inject_in_new_process(INJECTION_POINT::PATCH_EP)) {
+        if (inject_in_new_process(INJECTION_POINT::ADD_APC)) {
              printf("[SUCCESS] Code injected in a new process!\n");
         }
     }

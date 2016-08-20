@@ -53,8 +53,9 @@ bool create_new_process1(PROCESS_INFORMATION &pi)
         ))
     {
         printf("[ERROR] CreateProcess failed, Error = %x\n", GetLastError());
-        return (-1);
+        return false;
     }
+    return false;
 }
 
 bool create_new_process2(PROCESS_INFORMATION &pi)
@@ -70,7 +71,7 @@ bool create_new_process2(PROCESS_INFORMATION &pi)
 
     HANDLE hToken = NULL;
     HANDLE hNewToken = NULL;
-    if (!CreateProcessInternalW(hToken,
+    if (!CreateProcessInternalW (hToken,
             NULL, //lpApplicationName
             (LPWSTR) lpwOutPath, //lpCommandLine
             NULL, //lpProcessAttributes
