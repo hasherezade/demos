@@ -35,7 +35,7 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPBYTE shellcode, DWORD shellcodeSiz
     PROCESSINFOCLASS pic;
     memset(&pic, 0, sizeof(PROCESSINFOCLASS));
 
-    if (ZwQueryInformationProcess(hProcess, pic, &pbi, sizeof(PROCESS_BASIC_INFORMATION), NULL) != 0)
+    if (NtQueryInformationProcess(hProcess, pic, &pbi, sizeof(PROCESS_BASIC_INFORMATION), NULL) != 0)
     {
         printf("[ERROR] ZwQueryInformation failed\n");
         return false;
