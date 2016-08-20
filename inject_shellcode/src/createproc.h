@@ -55,7 +55,7 @@ bool create_new_process1(PROCESS_INFORMATION &pi)
         printf("[ERROR] CreateProcess failed, Error = %x\n", GetLastError());
         return false;
     }
-    return false;
+    return true;
 }
 
 bool create_new_process2(PROCESS_INFORMATION &pi)
