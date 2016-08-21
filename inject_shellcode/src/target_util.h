@@ -53,6 +53,9 @@ bool get_dir(LPWSTR cmdLine, OUT LPWSTR dirBuf, SIZE_T dirBufLen = MAX_PATH)
     SIZE_T offset = pwc - cmdLine + 1;
     if (offset >= dirBufLen) return false;
 
+    if (cmdLine[offset] != '\"' && cmdLine[offset] != '\'') {
+        return false;
+    }
     if (cmdLine[0] == '\"' || cmdLine[0] == '\'') {
         wcsncpy(dirBuf, cmdLine+1, offset-1);
         dirBuf[offset-1] = NULL;
@@ -60,6 +63,7 @@ bool get_dir(LPWSTR cmdLine, OUT LPWSTR dirBuf, SIZE_T dirBufLen = MAX_PATH)
         wcsncpy(dirBuf, cmdLine, offset);
         dirBuf[offset + 1] = NULL;
     }
+    printf("Dir: %S\n", dirBuf);
     return true;
 }
 
