@@ -1,7 +1,7 @@
 #pragma once
 #include "kernel32_undoc.h"
 
-bool create_new_process1(PROCESS_INFORMATION &pi, LPWSTR cmdLine)
+bool create_new_process1(PROCESS_INFORMATION &pi, LPWSTR cmdLine, LPWSTR startDir = NULL)
 {
     STARTUPINFO si;
     memset(&si, 0, sizeof(STARTUPINFO));
@@ -17,7 +17,7 @@ bool create_new_process1(PROCESS_INFORMATION &pi, LPWSTR cmdLine)
             NULL, //bInheritHandles
             DETACHED_PROCESS|CREATE_SUSPENDED|CREATE_NO_WINDOW, //dwCreationFlags
             NULL, //lpEnvironment 
-            NULL, //lpCurrentDirectory
+            startDir, //lpCurrentDirectory
             &si, //lpStartupInfo
             &pi //lpProcessInformation
         ))
@@ -28,7 +28,7 @@ bool create_new_process1(PROCESS_INFORMATION &pi, LPWSTR cmdLine)
     return true;
 }
 
-bool create_new_process2(PROCESS_INFORMATION &pi, LPWSTR cmdLine)
+bool create_new_process2(PROCESS_INFORMATION &pi, LPWSTR cmdLine, LPWSTR startDir = NULL)
 {
     STARTUPINFO si;
     memset(&si, 0, sizeof(STARTUPINFO));
@@ -46,7 +46,7 @@ bool create_new_process2(PROCESS_INFORMATION &pi, LPWSTR cmdLine)
             NULL, //bInheritHandles
             CREATE_SUSPENDED|DETACHED_PROCESS|CREATE_NO_WINDOW, //dwCreationFlags
             NULL, //lpEnvironment 
-            NULL, //lpCurrentDirectory
+            startDir, //lpCurrentDirectory
             &si, //lpStartupInfo
             &pi, //lpProcessInformation
             &hNewToken

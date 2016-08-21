@@ -5,3 +5,4 @@
 #include "add_thread.h"
 #include "add_apc.h"
 #include "patch_ep.h"
+#include "target_util.h"
