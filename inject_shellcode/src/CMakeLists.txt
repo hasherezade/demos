@@ -17,6 +17,7 @@ set (hdrs
 	add_thread.h
 	add_apc.h
 	patch_ep.h
+	patch_context.h
 	enumproc.h
     payload.h
 )

