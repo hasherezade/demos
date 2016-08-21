@@ -12,6 +12,8 @@ set (hdrs
 	ntddk.h
 	ntdll_undoc.h
 	kernel32_undoc.h
+	target_util.h
+	createproc.h
 	add_thread.h
 	add_apc.h
 	patch_ep.h

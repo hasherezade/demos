@@ -3,6 +3,7 @@
 
 
 #include "main.h"
+#include "target_util.h"
 #include "createproc.h"
 #include "enumproc.h"
 
@@ -106,7 +107,7 @@ bool inject_in_existing_process()
     if (remote_shellcode_ptr == NULL) {
         return false;
     }
-    run_shellcode_in_new_thread(hProcess, remote_shellcode_ptr, THREAD_CREATION_METHOD::usingRandomMethod);
+    return run_shellcode_in_new_thread(hProcess, remote_shellcode_ptr, THREAD_CREATION_METHOD::usingRandomMethod);
 }
 
 int main()

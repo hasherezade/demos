@@ -57,7 +57,7 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPBYTE shellcode, DWORD shellcodeSiz
     if (!ReadProcessMemory(hProcess, ImageBase, hdrs_buf, sizeof(hdrs_buf), &read_bytes) && read_bytes != sizeof(hdrs_buf))
     {
         printf("[-] ReadProcessMemory failed\n");
-        return (-1);
+        return false;
     }
     // verify read content:
     if (hdrs_buf[0] != 'M' || hdrs_buf[1] != 'Z') {
