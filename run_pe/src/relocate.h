@@ -1,10 +1,13 @@
 #pragma once
 #include <Windows.h>
 
+#define RELOC_32BIT_FIELD 3
+
 typedef struct _BASE_RELOCATION_ENTRY {
     WORD Offset : 12;
     WORD Type: 4;
 } BASE_RELOCATION_ENTRY;
+
 
 IMAGE_NT_HEADERS* get_nt_hrds(BYTE *pe_buffer)
 {
@@ -32,7 +35,7 @@ bool has_relocations(BYTE *pe_buffer)
     return true;
 }
 
-BOOL apply_reloc_block(BASE_RELOCATION_ENTRY *block, SIZE_T entriesNum, DWORD page, LONG oldBase, LONG newBase, PVOID modulePtr)
+bool apply_reloc_block(BASE_RELOCATION_ENTRY *block, SIZE_T entriesNum, DWORD page, LONG oldBase, LONG newBase, PVOID modulePtr)
 {
     BASE_RELOCATION_ENTRY* entry = block;
     SIZE_T i = 0;
@@ -42,16 +45,16 @@ BOOL apply_reloc_block(BASE_RELOCATION_ENTRY *block, SIZE_T entriesNum, DWORD pa
         if (entry == NULL || type == 0 || offset == 0) {
             break;
         }
-        if (type != 3) {
+        if (type != RELOC_32BIT_FIELD) {
             printf("Not supported relocations format at %d: %d\n", i, type);
-            return FALSE;
+            return false;
         }
         DWORD* relocateAddr = (DWORD*) ((ULONG_PTR) modulePtr + page + offset);
         (*relocateAddr) = ((*relocateAddr) - (ULONG_PTR) oldBase) + newBase;
         entry = (BASE_RELOCATION_ENTRY*)((ULONG_PTR) entry + sizeof(WORD));
     }
     printf("[+] Applied %d relocations\n", i);
-    return TRUE;
+    return true;
 }
 
 bool apply_relocations(LONG newBase, LONG oldBase, PVOID modulePtr)
@@ -87,7 +90,7 @@ bool apply_relocations(LONG newBase, LONG oldBase, PVOID modulePtr)
         DWORD page = reloc->VirtualAddress;
 
         BASE_RELOCATION_ENTRY* block = (BASE_RELOCATION_ENTRY*)((ULONG_PTR) reloc + sizeof(DWORD) + sizeof(DWORD));
-        if (apply_reloc_block(block, entriesNum, page, oldBase, newBase, modulePtr) == FALSE) {
+        if (apply_reloc_block(block, entriesNum, page, oldBase, newBase, modulePtr) == false) {
             return false;
         }
     }
