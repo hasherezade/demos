@@ -8,10 +8,14 @@ set (srcs
 )
 
 set (hdrs
-    resource.h
-	createproc.h
+	resource.h
 	ntddk.h
 	ntdll_undoc.h
+	target_util.h
+	createproc.h
+	relocate.h
+	runpe.h
+
 )
 
 set (rsrc
