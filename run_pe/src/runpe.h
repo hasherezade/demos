@@ -64,7 +64,8 @@ runPE32:
     payload - buffer with raw image of PE that we want to inject
     payload_size - size of the above
 
-    desiredBase - where we prefer to map the payload in the target memory; NULL is we don't care
+    desiredBase - address where we want to map the payload in the target memory; NULL if we don't care. 
+        This address will be ignored if the payload has no relocations table, because then it must be mapped to it's original ImageBase.
     unmap_target - do we want to unmap the target? (we are not forced to do it if it doesn't disturb our chosen base)
 */
 bool runPE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, DWORD desiredBase = NULL, bool unmap_target = false)
@@ -131,6 +132,9 @@ bool runPE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, DWORD desire
 
     //change the image base saved in headers - this is very important for loading imports:
     payload_nt_hdr->OptionalHeader.ImageBase = (DWORD) remoteAddress;
+
+    //first we will prepare the payload image in the local memory, so that it will be easier to edit it, apply relocations etc.
+    //when it will be ready, we will copy it into the space reserved in the target process
     HANDLE currentProcHandle = GetCurrentProcess();
     LPVOID localCopyAddress = VirtualAllocEx(currentProcHandle, NULL, payloadImageSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);;
     if (localCopyAddress == NULL) {
