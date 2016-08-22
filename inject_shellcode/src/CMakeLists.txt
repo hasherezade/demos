@@ -4,22 +4,24 @@ project (Injections)
 add_definitions(-DUNICODE -D_UNICODE)
 
 set (srcs
-    main.cpp
+	main.cpp
+	window_long_inject.cpp
 )
 
 set (hdrs
-    main.h
+	main.h
 	ntddk.h
 	ntdll_undoc.h
 	kernel32_undoc.h
 	target_util.h
+	payload.h
 	createproc.h
 	add_thread.h
 	add_apc.h
 	patch_ep.h
 	patch_context.h
+	window_long_inject.h
 	enumproc.h
-    payload.h
 )
 
 add_executable (Injections ${hdrs} ${srcs})
