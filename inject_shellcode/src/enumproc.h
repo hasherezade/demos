@@ -39,10 +39,10 @@ HANDLE find_running_process(LPWSTR searchedName)
         return NULL;
     }
 
-    // Calculate how many process identifiers were returned.
+    //calculate how many process identifiers were returned.
     cProcesses = cbNeeded / sizeof(DWORD);
-    // Print the name and process identifier for each process.
 
+    //search handle to the process of defined name
     for ( i = 0; i < cProcesses; i++ ) {
         if( aProcesses[i] != 0 ) {
             if (is_searched_process(aProcesses[i], searchedName)) {

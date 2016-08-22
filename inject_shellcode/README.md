@@ -10,3 +10,4 @@ Demonstrated methods:<br/>
 + Adding shellcode into existing thread (using NtQueueApcThread)
 + Patching Entry Point of the process
 + Patching context of the process
++ Injecting into Tray Window (using SetWindowLong)
