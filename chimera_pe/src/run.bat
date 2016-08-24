@@ -1,1 +1,1 @@
-regsvr32.exe /s demo.bin
+demo.bin
