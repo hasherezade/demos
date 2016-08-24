@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    if (inject_PE32(targetPath, res_data, res_size)) {
+    if (inject_PE32(targetPath, res_data, res_size, true, true)) {
         printf("Injected!\n");
     } else {
         printf("Injection failed\n");

