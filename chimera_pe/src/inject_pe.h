@@ -119,8 +119,6 @@ bool inject_PE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, bool era
     }
     printf("Allocated remote ImageBase: %p size: %x\n", remoteAddress,  payloadImageSize);
 
-    payload_nt_hdr->OptionalHeader.ImageBase = (DWORD) remoteAddress;
-
     //first we will prepare the payload image in the local memory, so that it will be easier to edit it, apply relocations etc.
     //when it will be ready, we will copy it into the space reserved in the target process
     HANDLE currentProcHandle = GetCurrentProcess();
