@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Windows.h>
+#include "ntddk.h"
 
 //here we don't want to use any functions imported form extenal modules
 

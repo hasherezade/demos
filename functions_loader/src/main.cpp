@@ -1,6 +1,5 @@
 #include <windows.h>
 #include <stdio.h>
-#include "ntddk.h"
 #include "peb_lookup.h"
 #include "exports_lookup.h"
 
