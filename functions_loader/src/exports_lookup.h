@@ -93,13 +93,12 @@ PVOID get_exported_func(PVOID modulePtr, LPSTR wanted_name)
         DWORD func = (*funcRVA);
         if (func == NULL) return NULL;
 
-        DWORD myOrdinal = i + exp->Base;
+        DWORD myOrdinal = i + 1;
         SIZE_T namePos = ord_lookup( modulePtr,  funcCount,  namesOrdsAddr,  myOrdinal);
-        if (namePos == -1) return NULL;
+        if (namePos == -1 || namePos == 0) continue;
 
         LPSTR name = get_func_name(modulePtr, funcNamesAddr, namePos);
         if (is_wanted_func(name, wanted_name)) {
-            //printf("Exported %d ord:%d | name: %s | func: %x\n", myOrdinal, ordinal, name, func);
             return (BYTE*) modulePtr + func;
         }
     }
