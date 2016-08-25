@@ -13,6 +13,9 @@ set (hdrs
 	pe_hdrs_helper.h
 	peb_lookup.h
 	exports_lookup.h
+
+	usage_demo.h
+	test.h
 )
 
 add_executable (FunctionsLoader ${hdrs} ${srcs})
