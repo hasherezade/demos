@@ -141,7 +141,13 @@ bool inject_PE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, bool era
             return false;
         }
     }
-    if (!apply_imports(localCopyAddress)) return false;
+
+    if (apply_imports(localCopyAddress) == false) {
+        printf("[WARNING] Some imports cannot be resolved by loader!\n[!] Payload should resolve remaining imports, or the application will crash!\n");
+
+        //do not erase headers in such case, because payload will need them for reflective imports loading:
+        erase_headers = false;
+    }
 
     // we may erase the payload's headers - at this stage they are no longer needed
     if (erase_headers) {
