@@ -29,33 +29,51 @@ bool write_handle_b32(DWORD call_via, LPSTR func_name, LPVOID modulePtr)
     if (hKernel == NULL) return false;
 
     FARPROC hProc = GetProcAddress(hKernel, func_name);
-    LPVOID store_handle = (LPVOID)((DWORD)modulePtr + call_via);
-    memcpy(store_handle, &hProc, sizeof(DWORD));
-    printf("proc addr: %p -> %p\n", hProc, store_handle);
+    LPVOID call_via_ptr = (LPVOID)((DWORD)modulePtr + call_via);
+    memcpy(call_via_ptr, &hProc, sizeof(DWORD));
+    printf("proc addr: %p -> %p\n", hProc, call_via_ptr);
     return true;
 }
 
-bool solve_imported_funcs_b32(DWORD call_via, LPVOID modulePtr)
+bool solve_imported_funcs_b32(DWORD call_via, DWORD thunk_addr, LPVOID modulePtr)
 {
     do {
-        LPVOID entryPtr = (LPVOID)((DWORD)modulePtr + call_via);
-        if (entryPtr == NULL) break;
+        LPVOID call_via_ptr = (LPVOID)((DWORD)modulePtr + call_via);
+        if (call_via_ptr == NULL) break;
 
-        IMAGE_THUNK_DATA32* desc = (IMAGE_THUNK_DATA32*) entryPtr;
-        if (desc->u1.Function == NULL) break;
+        LPVOID thunk_ptr = (LPVOID)((DWORD)modulePtr + thunk_addr);
+        if (thunk_ptr == NULL) break;
 
-        PIMAGE_IMPORT_BY_NAME by_name = (PIMAGE_IMPORT_BY_NAME) ((DWORD)modulePtr + desc->u1.AddressOfData);
-        if (desc->u1.Ordinal & IMAGE_ORDINAL_FLAG32) {
-            printf("Imports by ordinals are not supported!\n");
-            return false;
+        DWORD *thunk_val = (DWORD*)thunk_ptr;
+        DWORD *call_via_val = (DWORD*)call_via_ptr;
+        if (*call_via_val == 0) {
+            //nothing to fill, probably the last record
+            return true;
         }
-        LPSTR func_name = by_name->Name;
-        printf("name: %s\n", func_name);
-        if (!write_handle_b32(call_via, func_name, modulePtr)) {
-            printf("Could not load the handle!\n");
-            return false;
+
+        if (*thunk_val != *call_via_val) {
+            //those two values are supposed to be the same before the file have imports filled
+            //so, if they are different it means the handle is already filled
+            printf("Import already filled\n");
+        } else {
+            //fill it:
+            IMAGE_THUNK_DATA32* desc = (IMAGE_THUNK_DATA32*) thunk_ptr;
+            if (desc->u1.Function == NULL) break;
+
+            PIMAGE_IMPORT_BY_NAME by_name = (PIMAGE_IMPORT_BY_NAME) ((DWORD)modulePtr + desc->u1.AddressOfData);
+            if (desc->u1.Ordinal & IMAGE_ORDINAL_FLAG32) {
+                printf("Imports by ordinals are not supported!\n");
+                return false;
+            }
+            LPSTR func_name = by_name->Name;
+            printf("name: %s\n", func_name);
+            if (!write_handle_b32(call_via, func_name, modulePtr)) {
+                printf("Could not load the handle!\n");
+                return false;
+            }
         }
         call_via += sizeof(DWORD);
+        thunk_addr += sizeof(DWORD);
     } while (true);
     return true;
 }
@@ -87,10 +105,12 @@ bool apply_imports(PVOID modulePtr)
             printf("NOT SUPPORTED: for this method to work, EXE cannot have other imports than kernel32.dll!\n");
             return false;
         }
-        DWORD call_via = (lib_desc->FirstThunk != NULL) ? lib_desc->FirstThunk : lib_desc->OriginalFirstThunk;
-        if (call_via == 0) break;
 
-        solve_imported_funcs_b32(call_via, modulePtr);
+        DWORD call_via = lib_desc->FirstThunk;
+        DWORD thunk_addr = lib_desc->OriginalFirstThunk ? lib_desc->OriginalFirstThunk : lib_desc->FirstThunk;
+        if (thunk_addr == 0) break;
+
+        solve_imported_funcs_b32(call_via, thunk_addr, modulePtr);
     }
     printf("Imports ok!\n");
     printf("---------\n");
