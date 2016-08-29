@@ -3,10 +3,16 @@
 #include <stdio.h>
 
 #include "pe_hdrs_helper.h"
+
+// warning! most of the libraries are loaded at different bases in different processes
+// that's why, we cannot solve their handles by this way
+// kernel32.dll is one of the exceptions - plus, it is loaded by every process
+// that's why it is safe to solve it by external loader
 #define SUPPORTED_LIB_NAME "kernel32.dll"
 
-// warning! only functions from Kernel32.dll are supported
-// the reason is they are loaded at the same address in all the modules
+// user32.dll is also loaded at the same base, however, not every process will load it
+// if your payload needs it, and the target doesn't have it, it will crash!
+#define SUPPORTED_LIB_NAME2 "user32.dll"
 
 bool is_name(LPSTR lib_name, LPSTR supported_lib)
 {
@@ -24,6 +30,9 @@ bool is_name(LPSTR lib_name, LPSTR supported_lib)
 bool is_supported(LPSTR lib_name)
 {
     if (is_name(lib_name, SUPPORTED_LIB_NAME)) {
+        return true;
+    }
+    if (is_name(lib_name, SUPPORTED_LIB_NAME2)) {
         return true;
     }
     return false;
