@@ -89,7 +89,7 @@ bool runPE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, DWORD desire
     const LONG oldImageBase = payload_nt_hdr->OptionalHeader.ImageBase;
     DWORD payloadImageSize = payload_nt_hdr->OptionalHeader.SizeOfImage;
 
-    //create tatet process:
+    //create target process:
     PROCESS_INFORMATION pi;
     if (!create_new_process1(targetPath, pi)) return false;
     printf("PID: %d\n", pi.dwProcessId);
