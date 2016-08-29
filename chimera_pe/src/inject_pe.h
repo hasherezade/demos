@@ -160,14 +160,7 @@ bool inject_PE32(HANDLE hProcess, BYTE* payload, SIZE_T payload_size, bool erase
     LPVOID newEP = (LPVOID)((DWORD) remoteAddress + payload_nt_hdr->OptionalHeader.AddressOfEntryPoint);
     printf("newEP = %p\n", newEP);
     run_injected_in_new_thread(hProcess, newEP);
-    /*
-    //we may also run the original program
-    if (run_original) {
-        ResumeThread(pi.hThread);
-    }
-    */
-    //free the handles
-    //CloseHandle(pi.hThread);
+
     CloseHandle(currentProcHandle);
     return true;
 }
