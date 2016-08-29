@@ -15,7 +15,7 @@ IMAGE_NT_HEADERS* get_nt_hrds(BYTE *pe_buffer)
 
 IMAGE_DATA_DIRECTORY* get_pe_directory(PVOID pe_buffer, DWORD dir_id)
 {
-    if (dir_id > 16) return NULL;
+    if (dir_id >= IMAGE_NUMBEROF_DIRECTORY_ENTRIES) return NULL;
 
     //fetch relocation table from current image:
     PIMAGE_NT_HEADERS nt_headers = get_nt_hrds((BYTE*) pe_buffer);

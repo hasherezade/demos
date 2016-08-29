@@ -67,6 +67,7 @@ SIZE_T ord_lookup(PVOID modulePtr, SIZE_T funcCount, DWORD namesOrdsAddr, DWORD 
     return -1;
 }
 
+//WARNING: this is a minimalistic version - it doesn't work for the forwarded functions:
 PVOID get_exported_func(PVOID modulePtr, LPSTR wanted_name)
 {
     IMAGE_DATA_DIRECTORY *exportsDir = get_pe_directory(modulePtr, IMAGE_DIRECTORY_ENTRY_EXPORT);

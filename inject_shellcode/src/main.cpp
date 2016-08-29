@@ -134,7 +134,7 @@ int main()
         return (-1);
     }
 
-    TARGET_TYPE targetType = TARGET_TYPE::TRAY_WINDOW;
+    TARGET_TYPE targetType = TARGET_TYPE::NEW_PROC;
 
     switch (targetType) {
     case TARGET_TYPE::TRAY_WINDOW:
