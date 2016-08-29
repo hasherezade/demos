@@ -5,37 +5,43 @@
 #include "pe_hdrs_helper.h"
 #define SUPPORTED_LIB_NAME "kernel32.dll"
 
-// warning! only functions from Kernel32.dll can be solved like this!
-// the reason is kernel32 is guaranteed to be loaded at the same address in all the modules
+// warning! only functions from Kernel32.dll are supported
+// the reason is they are loaded at the same address in all the modules
 
-bool is_kernel32(LPSTR lib_name)
+bool is_name(LPSTR lib_name, LPSTR supported_lib)
 {
-    static CHAR kernel_name[] = SUPPORTED_LIB_NAME;
-    static SIZE_T kernel_name_len = strlen(kernel_name);
+    SIZE_T kernel_name_len = strlen(supported_lib);
 
     size_t lib_name_len = strlen(lib_name);
 
     for (size_t i = 0; i < kernel_name_len && i < lib_name_len; i++) {
         CHAR c = tolower(lib_name[i]);
-        if (c != kernel_name[i]) return false;
+        if (c != supported_lib[i]) return false;
     }
     return true;
 }
 
-bool write_handle_b32(DWORD call_via, LPSTR func_name, LPVOID modulePtr)
+bool is_supported(LPSTR lib_name)
 {
-    static CHAR kernel_name[] = SUPPORTED_LIB_NAME;
-    HMODULE hKernel = LoadLibraryA(kernel_name);
-    if (hKernel == NULL) return false;
+    if (is_name(lib_name, SUPPORTED_LIB_NAME)) {
+        return true;
+    }
+    return false;
+}
 
-    FARPROC hProc = GetProcAddress(hKernel, func_name);
+bool write_handle_b32(LPCSTR lib_name, DWORD call_via, LPSTR func_name, LPVOID modulePtr)
+{
+    HMODULE hBase = LoadLibraryA(lib_name);
+    if (hBase == NULL) return false;
+
+    FARPROC hProc = GetProcAddress(hBase, func_name);
     LPVOID call_via_ptr = (LPVOID)((DWORD)modulePtr + call_via);
     memcpy(call_via_ptr, &hProc, sizeof(DWORD));
     printf("proc addr: %p -> %p\n", hProc, call_via_ptr);
     return true;
 }
 
-bool solve_imported_funcs_b32(DWORD call_via, DWORD thunk_addr, LPVOID modulePtr)
+bool solve_imported_funcs_b32(LPCSTR lib_name, DWORD call_via, DWORD thunk_addr, LPVOID modulePtr)
 {
     do {
         LPVOID call_via_ptr = (LPVOID)((DWORD)modulePtr + call_via);
@@ -67,7 +73,7 @@ bool solve_imported_funcs_b32(DWORD call_via, DWORD thunk_addr, LPVOID modulePtr
             }
             LPSTR func_name = by_name->Name;
             printf("name: %s\n", func_name);
-            if (!write_handle_b32(call_via, func_name, modulePtr)) {
+            if (!write_handle_b32(lib_name, call_via, func_name, modulePtr)) {
                 printf("Could not load the handle!\n");
                 return false;
             }
@@ -101,8 +107,8 @@ bool apply_imports(PVOID modulePtr)
         printf("Imported Lib: %x : %x : %x\n", lib_desc->FirstThunk, lib_desc->OriginalFirstThunk, lib_desc->Name);
         LPSTR lib_name = (LPSTR)((DWORD)modulePtr + lib_desc->Name);
         printf("name: %s\n", lib_name);
-        if (!is_kernel32(lib_name)) {
-            printf("NOT SUPPORTED: for this method to work, EXE cannot have other imports than kernel32.dll!\n");
+        if (!is_supported(lib_name)) {
+            printf("NOT SUPPORTED: for this method to work, EXE cannot have other imports than kernel32.dll or user32.dll!\n");
             return false;
         }
 
@@ -110,7 +116,7 @@ bool apply_imports(PVOID modulePtr)
         DWORD thunk_addr = lib_desc->OriginalFirstThunk ? lib_desc->OriginalFirstThunk : lib_desc->FirstThunk;
         if (thunk_addr == 0) break;
 
-        solve_imported_funcs_b32(call_via, thunk_addr, modulePtr);
+        solve_imported_funcs_b32(lib_name, call_via, thunk_addr, modulePtr);
     }
     printf("Imports ok!\n");
     printf("---------\n");

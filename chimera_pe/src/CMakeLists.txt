@@ -13,12 +13,12 @@ set (hdrs
 	ntddk.h
 	ntdll_undoc.h
 	target_util.h
+	enumproc.h
 	createproc.h
 	pe_hdrs_helper.h
 	load_imports.h
 	relocate.h
 	inject_pe.h
-
 )
 
 set (rsrc

