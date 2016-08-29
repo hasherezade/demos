@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
         //or create a new one:
         hProcess = make_new_process(mainThread);
     }
-    if (inject_PE32(hProcess, res_data, res_size, true)) {
+    if (inject_PE32(hProcess, res_data, res_size)) {
         printf("Injected!\n");
     } else {
         printf("Injection failed\n");
