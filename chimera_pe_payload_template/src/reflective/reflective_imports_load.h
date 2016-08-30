@@ -53,12 +53,8 @@ bool init_functions()
      return true;
 }
 
-bool write_handle_b32(LPSTR lib_name, DWORD call_via,  LPSTR func_name, LPVOID modulePtr)
+bool write_handle_b32(HMODULE hLib, DWORD call_via,  LPSTR func_name, LPVOID modulePtr)
 {
-
-    HMODULE hLib = load_lib_ptr(lib_name);
-    if (hLib == NULL) return false;
-
     FARPROC hProc = (FARPROC)get_proc_addr_ptr(hLib, func_name);
     LPVOID call_via_ptr = (LPVOID)((DWORD)modulePtr + call_via);
     DWORD oldProtect;
@@ -72,6 +68,13 @@ bool write_handle_b32(LPSTR lib_name, DWORD call_via,  LPSTR func_name, LPVOID m
 
 bool solve_imported_funcs_b32(LPSTR lib_name, DWORD call_via, DWORD thunk_addr, LPVOID modulePtr)
 {
+    // if handles to functions from user32.dll were filled by the loader
+    // but in the target - user32.dll was not loaded - it will get loaded now
+    // and handles will become valid:
+    HMODULE hLib = load_lib_ptr(lib_name);
+    if (hLib == NULL) return false;
+
+    //for other unsolved libraries, handles must be retrieved and written:
     do {
         LPVOID call_via_ptr = (LPVOID)((DWORD)modulePtr + call_via);
         if (call_via_ptr == NULL) break;
@@ -100,7 +103,7 @@ bool solve_imported_funcs_b32(LPSTR lib_name, DWORD call_via, DWORD thunk_addr, 
             }
             LPSTR func_name = by_name->Name;
             printf("name: %s\n", func_name);
-            if (!write_handle_b32(lib_name, call_via, func_name, modulePtr)) {
+            if (!write_handle_b32(hLib, call_via, func_name, modulePtr)) {
                 //printf("Could not load the handle!\n");
                 return false;
             }
