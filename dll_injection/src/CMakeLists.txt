@@ -13,6 +13,7 @@ set (hdrs
 	target_util.h
 	createproc.h
 	enumproc.h
+	map_buffer_into_process.h
 	inject_with_loadlibrary.h
 )
 
