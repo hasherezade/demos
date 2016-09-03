@@ -13,6 +13,7 @@ set (hdrs
 	target_util.h
 	createproc.h
 	enumproc.h
+	inject_with_loadlibrary.h
 )
 
 set (rsrc
