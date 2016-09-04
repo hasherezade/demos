@@ -42,7 +42,6 @@ PVOID map_buffer_into_process1(HANDLE hProcess, LPBYTE buffer, SIZE_T buffer_siz
     if ((status = NtMapViewOfSection(hSection, hProcess, &sectionBaseAddress2, NULL, NULL, NULL, &viewSize, ViewShare, NULL, protect)) != STATUS_SUCCESS)
     {
         printf("[ERROR] NtMapViewOfSection failed, status : %x\n", status);
-        return NULL;
     }
 
     //unmap from the context of current process
@@ -50,6 +49,7 @@ PVOID map_buffer_into_process1(HANDLE hProcess, LPBYTE buffer, SIZE_T buffer_siz
     ZwClose(hSection);
 
     printf("Section mapped at address: %p\n", sectionBaseAddress2);
+    // return remote address of the new section, or NULL if failed to map
     return sectionBaseAddress2;
 }
 
