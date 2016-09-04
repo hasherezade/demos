@@ -4,7 +4,8 @@ project (RunPE)
 add_definitions(-DUNICODE -D_UNICODE)
 
 set (srcs
-    main.cpp
+	main.cpp
+	pe_hdrs_helper.cpp
 )
 
 set (hdrs
@@ -13,13 +14,14 @@ set (hdrs
 	ntdll_undoc.h
 	target_util.h
 	createproc.h
+	pe_hdrs_helper.h
+	pe_raw_to_virtual.h
 	relocate.h
 	runpe.h
-
 )
 
 set (rsrc
-    resource.rc
+	resource.rc
 )
 
 add_executable (RunPE ${rsrc} ${hdrs} ${srcs})

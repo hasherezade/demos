@@ -1,5 +1,6 @@
 #pragma once
 #include <Windows.h>
+#include "pe_hdrs_helper.h"
 
 #define RELOC_32BIT_FIELD 3
 
@@ -8,27 +9,10 @@ typedef struct _BASE_RELOCATION_ENTRY {
     WORD Type: 4;
 } BASE_RELOCATION_ENTRY;
 
-
-IMAGE_NT_HEADERS* get_nt_hrds(BYTE *pe_buffer)
-{
-    if (pe_buffer == NULL) return NULL;
-
-    IMAGE_DOS_HEADER *idh = (IMAGE_DOS_HEADER*)pe_buffer;
-    if (idh->e_magic != IMAGE_DOS_SIGNATURE) {
-        return NULL;
-    }
-    IMAGE_NT_HEADERS *inh = (IMAGE_NT_HEADERS *)((BYTE*)pe_buffer + idh->e_lfanew);
-    return inh;
-}
-
 bool has_relocations(BYTE *pe_buffer)
 {
-    //fetch relocation table from current image:
-    PIMAGE_NT_HEADERS nt_headers = get_nt_hrds((BYTE*) pe_buffer);
-    if (nt_headers == NULL) return false;
-
-    IMAGE_DATA_DIRECTORY relocDir = nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
-    if (relocDir.VirtualAddress == NULL) {
+    IMAGE_DATA_DIRECTORY* relocDir = get_pe_directory(pe_buffer, IMAGE_DIRECTORY_ENTRY_BASERELOC);
+    if (relocDir == NULL) {
         return false;
     }
     return true;
@@ -58,23 +42,17 @@ bool apply_reloc_block(BASE_RELOCATION_ENTRY *block, SIZE_T entriesNum, DWORD pa
 
 bool apply_relocations(LONG newBase, LONG oldBase, PVOID modulePtr)
 {
-    //fetch relocation table from current image:
-    PIMAGE_NT_HEADERS nt_headers = get_nt_hrds((BYTE*) modulePtr);
-    if (nt_headers == NULL) {
-        return false;
-    }
-
-    IMAGE_DATA_DIRECTORY relocDir = nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
-    if (relocDir.VirtualAddress == NULL) {
+    IMAGE_DATA_DIRECTORY* relocDir = get_pe_directory(modulePtr, IMAGE_DIRECTORY_ENTRY_BASERELOC);
+    if (relocDir == NULL) {
         printf ("Cannot relocate - application have no relocation table!\n");
         return false;
     }
-    DWORD maxSize = relocDir.Size;
-    DWORD parsedSize = 0;
+    DWORD maxSize = relocDir->Size;
+    DWORD relocAddr = relocDir->VirtualAddress;
 
-    DWORD relocAddr = relocDir.VirtualAddress;
     IMAGE_BASE_RELOCATION* reloc = NULL;
 
+    DWORD parsedSize = 0;
     while (parsedSize < maxSize) {
         reloc = (IMAGE_BASE_RELOCATION*)(relocAddr + parsedSize + (ULONG_PTR) modulePtr);
         parsedSize += reloc->SizeOfBlock;
