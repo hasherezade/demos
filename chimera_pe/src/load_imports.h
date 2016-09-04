@@ -65,13 +65,9 @@ bool solve_imported_funcs_b32(LPCSTR lib_name, DWORD call_via, DWORD thunk_addr,
             //nothing to fill, probably the last record
             return true;
         }
-
-        if (*thunk_val != *call_via_val) {
-            //those two values are supposed to be the same before the file have imports filled
-            //so, if they are different it means the handle is already filled
-            printf("Import already filled\n");
-        } else {
-            //fill it:
+        //those two values are supposed to be the same before the file have imports filled
+        //so, if they are different it means the handle is already filled
+        if (*thunk_val == *call_via_val) {
             IMAGE_THUNK_DATA32* desc = (IMAGE_THUNK_DATA32*) thunk_ptr;
             if (desc->u1.Function == NULL) break;
 
@@ -100,16 +96,18 @@ bool apply_imports(PVOID modulePtr)
     if (importsDir == NULL) return false;
 
     DWORD maxSize = importsDir->Size;
+    DWORD impAddr = importsDir->VirtualAddress;
+
+    IMAGE_IMPORT_DESCRIPTOR* lib_desc = NULL;
+    bool isAllFilled = true;
     DWORD parsedSize = 0;
 
-    DWORD impAddr = importsDir->VirtualAddress;
-    IMAGE_IMPORT_DESCRIPTOR* lib_desc = NULL;
     printf("---IMP---\n");
     while (parsedSize < maxSize) {
         lib_desc = (IMAGE_IMPORT_DESCRIPTOR*)(impAddr + parsedSize + (ULONG_PTR) modulePtr);
         parsedSize += sizeof(IMAGE_IMPORT_DESCRIPTOR);
 
-        if (lib_desc->OriginalFirstThunk == NULL && lib_desc->FirstThunk == 0) {
+        if (lib_desc->OriginalFirstThunk == NULL && lib_desc->FirstThunk == NULL) {
             break;
         }
 
@@ -117,17 +115,20 @@ bool apply_imports(PVOID modulePtr)
         LPSTR lib_name = (LPSTR)((DWORD)modulePtr + lib_desc->Name);
         printf("name: %s\n", lib_name);
         if (!is_supported(lib_name)) {
-            printf("NOT SUPPORTED: for this method to work, EXE cannot have other imports than kernel32.dll or user32.dll!\n");
-            return false;
+            isAllFilled = false;
+            //skip libraries that cannot be filled
+            continue;
         }
 
         DWORD call_via = lib_desc->FirstThunk;
-        DWORD thunk_addr = lib_desc->OriginalFirstThunk ? lib_desc->OriginalFirstThunk : lib_desc->FirstThunk;
-        if (thunk_addr == 0) break;
+        DWORD thunk_addr = lib_desc->OriginalFirstThunk;
+        if (thunk_addr == NULL) thunk_addr = lib_desc->FirstThunk;
 
         solve_imported_funcs_b32(lib_name, call_via, thunk_addr, modulePtr);
     }
-    printf("Imports ok!\n");
+    if (isAllFilled == false) {
+        printf("WARNING: Some libraries are not filled!\nFor this method to work, EXE cannot have other imports than kernel32.dll or user32.dll!\n");
+    }
     printf("---------\n");
-    return true;
+    return isAllFilled;
 }

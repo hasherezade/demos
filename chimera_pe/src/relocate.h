@@ -11,10 +11,11 @@ typedef struct _BASE_RELOCATION_ENTRY {
 
 bool has_relocations(BYTE *pe_buffer)
 {
-     if (get_pe_directory(pe_buffer, IMAGE_DIRECTORY_ENTRY_BASERELOC) == NULL) {
+    IMAGE_DATA_DIRECTORY* relocDir = get_pe_directory(pe_buffer, IMAGE_DIRECTORY_ENTRY_BASERELOC);
+    if (relocDir == NULL) {
         return false;
-     }
-     return true;
+    }
+    return true;
 }
 
 bool apply_reloc_block(BASE_RELOCATION_ENTRY *block, SIZE_T entriesNum, DWORD page, LONG oldBase, LONG newBase, PVOID modulePtr)
@@ -41,23 +42,17 @@ bool apply_reloc_block(BASE_RELOCATION_ENTRY *block, SIZE_T entriesNum, DWORD pa
 
 bool apply_relocations(LONG newBase, LONG oldBase, PVOID modulePtr)
 {
-    //fetch relocation table from current image:
-    PIMAGE_NT_HEADERS nt_headers = get_nt_hrds((BYTE*) modulePtr);
-    if (nt_headers == NULL) {
-        return false;
-    }
-
-    IMAGE_DATA_DIRECTORY relocDir = nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
-    if (relocDir.VirtualAddress == NULL) {
+    IMAGE_DATA_DIRECTORY* relocDir = get_pe_directory(modulePtr, IMAGE_DIRECTORY_ENTRY_BASERELOC);
+    if (relocDir == NULL) {
         printf ("Cannot relocate - application have no relocation table!\n");
         return false;
     }
-    DWORD maxSize = relocDir.Size;
-    DWORD parsedSize = 0;
+    DWORD maxSize = relocDir->Size;
+    DWORD relocAddr = relocDir->VirtualAddress;
 
-    DWORD relocAddr = relocDir.VirtualAddress;
     IMAGE_BASE_RELOCATION* reloc = NULL;
 
+    DWORD parsedSize = 0;
     while (parsedSize < maxSize) {
         reloc = (IMAGE_BASE_RELOCATION*)(relocAddr + parsedSize + (ULONG_PTR) modulePtr);
         parsedSize += reloc->SizeOfBlock;
