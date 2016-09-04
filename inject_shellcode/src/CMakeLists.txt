@@ -13,6 +13,7 @@ set (hdrs
 	ntddk.h
 	ntdll_undoc.h
 	kernel32_undoc.h
+	map_buffer_into_process.h
 	target_util.h
 	payload.h
 	createproc.h

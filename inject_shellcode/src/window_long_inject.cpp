@@ -74,7 +74,7 @@ bool inject_into_tray(LPBYTE shellcode, SIZE_T shellcodeSize)
     DWORD pid = 0;
     GetWindowThreadProcessId(hWnd, &pid);
     printf("PID:\t%p\n", pid);
-   
+   //save the current value, because we will need to recover it:
     LONG winLong = GetWindowLongW(hWnd, DWL_MSGRESULT);
     printf("WindowLong:\t%p\n", winLong);
 
