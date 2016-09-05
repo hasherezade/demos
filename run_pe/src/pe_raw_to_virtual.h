@@ -3,7 +3,7 @@
 #include <windows.h>
 #include <stdio.h>
 
-#include "ntdll_undoc.h"
+#include "pe_hdrs_helper.h"
 
 // Map raw PE into virtual memory of remote process
 bool copy_pe_to_virtual_r(BYTE* payload, SIZE_T payload_size, LPVOID baseAddress, HANDLE hProcess)
