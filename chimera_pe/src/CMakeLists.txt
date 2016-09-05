@@ -16,6 +16,7 @@ set (hdrs
 	enumproc.h
 	createproc.h
 	pe_hdrs_helper.h
+	pe_raw_to_virtual.h
 	load_imports.h
 	relocate.h
 	inject_pe.h

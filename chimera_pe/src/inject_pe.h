@@ -5,6 +5,8 @@
 
 #include "ntdll_undoc.h"
 #include "createproc.h"
+
+#include "pe_raw_to_virtual.h"
 #include "relocate.h"
 #include "load_imports.h"
 
@@ -14,49 +16,6 @@ bool is_system32b()
         return true;
     }
     return false;
-}
-
-bool copy_pe_to_virtual(BYTE* payload, SIZE_T payload_size, LPVOID baseAddress, HANDLE hProcess)
-{
-    if (payload == NULL) return false;
-
-    IMAGE_NT_HEADERS* payload_nt_hdr = get_nt_hrds(payload);
-    if (payload_nt_hdr == NULL) {
-        printf("Invalid payload: %p\n", payload);
-        return false;
-    }
-
-    DWORD written = 0;
-
-    //copy payload's headers:
-    const DWORD kHdrsSize = payload_nt_hdr->OptionalHeader.SizeOfHeaders;
-    if (!WriteProcessMemory(hProcess, baseAddress, payload, kHdrsSize, &written)) {
-        return false;
-    }
-    if (written != kHdrsSize) return false;
-
-    printf("Copied payload's headers to: %p\n", baseAddress);
-
-    LPVOID secptr = &(payload_nt_hdr->OptionalHeader);
-    const DWORD kOptHdrSize = payload_nt_hdr->FileHeader.SizeOfOptionalHeader;
-
-    //copy all the sections, one by one:
-    secptr = LPVOID((DWORD) secptr + kOptHdrSize);
-
-    printf("Coping sections:\n");
-    for (WORD i = 0; i < payload_nt_hdr->FileHeader.NumberOfSections; i++) {
-       PIMAGE_SECTION_HEADER next_sec = (PIMAGE_SECTION_HEADER)((DWORD)secptr + (IMAGE_SIZEOF_SECTION_HEADER * i));
-
-       LPVOID section_place = (BYTE*) baseAddress + next_sec->VirtualAddress;
-       LPVOID section_raw_ptr = payload + next_sec->PointerToRawData;
-
-       if (!WriteProcessMemory(hProcess, section_place, section_raw_ptr, next_sec->SizeOfRawData, &written)) {
-           return false;
-       }
-       if (written != next_sec->SizeOfRawData) return false;
-       printf("[+] %s to: %p\n", next_sec->Name, section_place);
-    }
-    return true;
 }
 
 bool run_injected_in_new_thread(HANDLE hProcess, LPVOID remote_shellcode_ptr)
@@ -113,15 +72,14 @@ bool inject_PE32(HANDLE hProcess, BYTE* payload, SIZE_T payload_size)
 
     //first we will prepare the payload image in the local memory, so that it will be easier to edit it, apply relocations etc.
     //when it will be ready, we will copy it into the space reserved in the target process
-    HANDLE currentProcHandle = GetCurrentProcess();
-    LPVOID localCopyAddress = VirtualAllocEx(currentProcHandle, NULL, payloadImageSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);;
+    LPVOID localCopyAddress = VirtualAlloc(NULL, payloadImageSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);;
     if (localCopyAddress == NULL) {
         printf("Could not allocate memory in the current process\n");
         return false;
     }
     printf("Allocated local memory: %p size: %x\n", localCopyAddress,  payloadImageSize);
 
-    if (!copy_pe_to_virtual(payload, payload_size, localCopyAddress, currentProcHandle)) {
+    if (!copy_pe_to_virtual_l(payload, payload_size, localCopyAddress)) {
         printf("Could not copy PE file\n");
         return false;
     }
@@ -150,6 +108,5 @@ bool inject_PE32(HANDLE hProcess, BYTE* payload, SIZE_T payload_size)
     printf("newEP = %p\n", newEP);
     run_injected_in_new_thread(hProcess, newEP);
 
-    CloseHandle(currentProcHandle);
     return true;
 }
