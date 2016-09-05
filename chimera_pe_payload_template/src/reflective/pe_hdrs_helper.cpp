@@ -8,7 +8,11 @@ IMAGE_NT_HEADERS* get_nt_hrds(BYTE *pe_buffer)
     if (idh->e_magic != IMAGE_DOS_SIGNATURE) {
         return NULL;
     }
-    IMAGE_NT_HEADERS *inh = (IMAGE_NT_HEADERS *)((BYTE*)pe_buffer + idh->e_lfanew);
+    const LONG kMaxOffset = 1024;
+    LONG pe_offset = idh->e_lfanew;
+    if (pe_offset > kMaxOffset) return NULL;
+
+    IMAGE_NT_HEADERS *inh = (IMAGE_NT_HEADERS *)((BYTE*)pe_buffer + pe_offset);
     return inh;
 }
 
