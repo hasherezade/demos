@@ -36,16 +36,13 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPVOID remote_shellcode_ptr)
     PROCESS_BASIC_INFORMATION pbi;
     memset(&pbi, 0, sizeof(PROCESS_BASIC_INFORMATION));
 
-    PROCESSINFOCLASS pic;
-    memset(&pic, 0, sizeof(PROCESSINFOCLASS));
-
-    if (NtQueryInformationProcess(hProcess, pic, &pbi, sizeof(PROCESS_BASIC_INFORMATION), NULL) != 0)
+    if (NtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(PROCESS_BASIC_INFORMATION), NULL) != 0)
     {
-        printf("[ERROR] ZwQueryInformation failed\n");
+        printf("[ERROR] NtQueryInformationProcess failed\n");
         return false;
     }
 
-    printf("PID = 0x%x\n", pbi.UniqueProcessId);
+    printf("PID = 0x%p\n", pbi.UniqueProcessId);
 
     LPCVOID ImageBase = 0;
     SIZE_T read_bytes = 0;
