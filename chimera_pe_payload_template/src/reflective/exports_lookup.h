@@ -47,7 +47,7 @@ bool is_wanted_func(LPSTR curr_name, LPSTR wanted_name)
 
 LPSTR get_func_name(PVOID modulePtr, DWORD funcNamesAddr, DWORD nameOrdinal )
 {
-    DWORD offset = sizeof(DWORD) * (nameOrdinal - 1);
+    DWORD offset = sizeof(DWORD) * (nameOrdinal);
     DWORD* funcNameRVA = (DWORD*)(funcNamesAddr + (BYTE*) modulePtr + offset);
     DWORD nameRVA = *funcNameRVA;
 
@@ -94,8 +94,7 @@ PVOID get_exported_func(PVOID modulePtr, LPSTR wanted_name)
         DWORD func = (*funcRVA);
         if (func == NULL) return NULL;
 
-        DWORD myOrdinal = i + 1;
-        SIZE_T namePos = ord_lookup( modulePtr,  funcCount,  namesOrdsAddr,  myOrdinal);
+        SIZE_T namePos = ord_lookup( modulePtr,  funcCount,  namesOrdsAddr,  i);
         if (namePos == -1 || namePos == 0) continue;
 
         LPSTR name = get_func_name(modulePtr, funcNamesAddr, namePos);
