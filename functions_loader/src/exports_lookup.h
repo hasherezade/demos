@@ -30,12 +30,12 @@ bool is_wanted_func(LPSTR curr_name, LPSTR wanted_name)
 {
     if (curr_name == NULL || wanted_name == NULL) return false;
 
-    SIZE_T wanted_name_len = strlen(wanted_name);
-    SIZE_T curr_name_len = strlen(curr_name);
+    size_t wanted_name_len = strlen(wanted_name);
+    size_t curr_name_len = strlen(curr_name);
 
     if (curr_name_len != wanted_name_len) return false;
 
-    for (size_t i = 0; i < wanted_name_len && i < curr_name_len; i++) {
+    for (size_t i = 0; i < wanted_name_len; i++) {
         char c1 = curr_name[i];
         char c2 = wanted_name[i];
         TO_LOWERCASE(c1);
