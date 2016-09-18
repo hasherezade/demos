@@ -6,13 +6,16 @@
 
 // warning! most of the libraries are loaded at different bases in different processes
 // that's why, we cannot solve their handles by this way
-// kernel32.dll is one of the exceptions - plus, it is loaded by every process
+// kernel32.dll and ntdll.dll are some of the exceptions - plus, they are loaded by every process
 // that's why it is safe to solve it by external loader
 #define SUPPORTED_LIB_NAME "kernel32.dll"
+#define SUPPORTED_LIB_NAME2 "ntdll.dll"
 
 // user32.dll is also loaded at the same base, however, not every process will load it
 // if your payload needs it, and the target doesn't have it, it will crash!
-#define SUPPORTED_LIB_NAME2 "user32.dll"
+#define SUPPORTED_LIB_NAME3 "user32.dll"
+// if you want to include it add: 
+// #define TARGET_HAS_USER32
 
 bool is_name(LPSTR lib_name, LPSTR supported_lib)
 {
@@ -35,6 +38,11 @@ bool is_supported(LPSTR lib_name)
     if (is_name(lib_name, SUPPORTED_LIB_NAME2)) {
         return true;
     }
+#ifdef TARGET_HAS_USER32
+    if (is_name(lib_name, SUPPORTED_LIB_NAME3)) {
+        return true;
+    }
+#endif
     return false;
 }
 
