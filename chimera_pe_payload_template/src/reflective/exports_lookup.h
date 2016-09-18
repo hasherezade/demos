@@ -45,61 +45,31 @@ bool is_wanted_func(LPSTR curr_name, LPSTR wanted_name)
     return true;
 }
 
-LPSTR get_func_name(PVOID modulePtr, DWORD funcNamesAddr, DWORD nameOrdinal )
-{
-    DWORD offset = sizeof(DWORD) * (nameOrdinal);
-    DWORD* funcNameRVA = (DWORD*)(funcNamesAddr + (BYTE*) modulePtr + offset);
-    DWORD nameRVA = *funcNameRVA;
-
-    if (nameRVA == NULL) return NULL;
-
-    LPSTR name = (LPSTR)(nameRVA + (BYTE*) modulePtr);
-    //printf("Got name: %s | %d\n", name, nameOrdinal);
-    return name;
-}
-
-SIZE_T ord_lookup(PVOID modulePtr, SIZE_T funcCount, DWORD namesOrdsAddr, DWORD myOrd)
-{
-    for (SIZE_T i = 0; i < funcCount; i++) {
-        WORD* funcOrdRVA = (WORD*)(namesOrdsAddr + (BYTE*) modulePtr + i * sizeof(WORD));
-        if (*funcOrdRVA == myOrd) return i;
-    }
-    return -1;
-}
-
 //WARNING: this is a minimalistic version - it doesn't work for the forwarded functions:
 PVOID get_exported_func(PVOID modulePtr, LPSTR wanted_name)
 {
     IMAGE_DATA_DIRECTORY *exportsDir = get_pe_directory(modulePtr, IMAGE_DIRECTORY_ENTRY_EXPORT);
     if (exportsDir == NULL) return NULL;
 
-    DWORD maxSize = exportsDir->Size;
-    DWORD parsedSize = 0;
-
     DWORD expAddr = exportsDir->VirtualAddress;
     if (expAddr == 0) return NULL;
 
     IMAGE_EXPORT_DIRECTORY* exp = (IMAGE_EXPORT_DIRECTORY*)(expAddr + (ULONG_PTR) modulePtr);
-    SIZE_T funcCount = exp->NumberOfFunctions;
-    
-    DWORD funcsAddr = exp->AddressOfFunctions;
-    DWORD funcNamesAddr = exp->AddressOfNames;
-    DWORD namesOrdsAddr = exp->AddressOfNameOrdinals;
+    SIZE_T namesCount = exp->NumberOfNames;
 
-    DWORD offset = 0;
-    for (SIZE_T i = 0; i < funcCount; i++, offset+=sizeof(DWORD)) {
-        DWORD* funcRVA = (DWORD*)(funcsAddr + (BYTE*) modulePtr + offset);
-        WORD* funcOrdRVA = (WORD*)(namesOrdsAddr + (BYTE*) modulePtr + i*sizeof(WORD));
+    DWORD funcsListRVA = exp->AddressOfFunctions;
+    DWORD funcNamesListRVA = exp->AddressOfNames;
+    DWORD namesOrdsListRVA = exp->AddressOfNameOrdinals;
 
-        DWORD func = (*funcRVA);
-        if (func == NULL) return NULL;
+    //go through names:
+    for (SIZE_T i = 0; i < namesCount; i++) {
+        DWORD* nameRVA = (DWORD*)(funcNamesListRVA + (BYTE*) modulePtr + i * sizeof(DWORD));
+        WORD* nameIndex = (WORD*)(namesOrdsListRVA + (BYTE*) modulePtr + i * sizeof(WORD));
+        DWORD* funcRVA = (DWORD*)(funcsListRVA + (BYTE*) modulePtr + (*nameIndex) * sizeof(DWORD));
 
-        SIZE_T namePos = ord_lookup( modulePtr,  funcCount,  namesOrdsAddr,  i);
-        if (namePos == -1 || namePos == 0) continue;
-
-        LPSTR name = get_func_name(modulePtr, funcNamesAddr, namePos);
+        LPSTR name = (LPSTR)(*nameRVA + (BYTE*) modulePtr);       
         if (is_wanted_func(name, wanted_name)) {
-            return (BYTE*) modulePtr + func;
+            return (BYTE*) modulePtr + (*funcRVA);
         }
     }
     //function not found
