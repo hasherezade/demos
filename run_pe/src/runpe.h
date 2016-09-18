@@ -133,7 +133,7 @@ bool runPE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, DWORD desire
     DWORD newEP = (DWORD) remoteAddress + payload_nt_hdr->OptionalHeader.AddressOfEntryPoint;
     printf("newEP: %p\n", newEP);
     context.Eax = newEP;
-    SetThreadContext(pi.hThread, LPCONTEXT(&context));
+    SetThreadContext(pi.hThread, &context);
 
     //start the injected:
     printf("--\n");
