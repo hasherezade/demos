@@ -78,7 +78,7 @@ bool inject_into_tray(LPBYTE shellcode, SIZE_T shellcodeSize)
     LONG winLong = GetWindowLongW(hWnd, 0);
     printf("WindowLong:\t%p\n", winLong);
 
-    HANDLE hProcess = OpenProcess(PROCESS_VM_OPERATION, false, pid);
+    HANDLE hProcess = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_WRITE, false, pid);
     if (hProcess == NULL) {
         return false;
     }
