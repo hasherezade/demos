@@ -13,7 +13,7 @@ bool create_new_process1(IN LPWSTR path, OUT PROCESS_INFORMATION &pi)
             path,
             NULL, //lpProcessAttributes
             NULL, //lpThreadAttributes
-            NULL, //bInheritHandles
+            FALSE, //bInheritHandles
             CREATE_SUSPENDED, //dwCreationFlags
             NULL, //lpEnvironment 
             NULL, //lpCurrentDirectory

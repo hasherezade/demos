@@ -14,7 +14,7 @@ bool create_new_process1(PROCESS_INFORMATION &pi, LPWSTR cmdLine, LPWSTR startDi
             cmdLine,
             NULL, //lpProcessAttributes
             NULL, //lpThreadAttributes
-            NULL, //bInheritHandles
+            FALSE, //bInheritHandles
             DETACHED_PROCESS|CREATE_SUSPENDED|CREATE_NO_WINDOW, //dwCreationFlags
             NULL, //lpEnvironment 
             startDir, //lpCurrentDirectory
@@ -43,7 +43,7 @@ bool create_new_process2(PROCESS_INFORMATION &pi, LPWSTR cmdLine, LPWSTR startDi
             (LPWSTR) cmdLine, //lpCommandLine
             NULL, //lpProcessAttributes
             NULL, //lpThreadAttributes
-            NULL, //bInheritHandles
+            FALSE, //bInheritHandles
             CREATE_SUSPENDED|DETACHED_PROCESS|CREATE_NO_WINDOW, //dwCreationFlags
             NULL, //lpEnvironment 
             startDir, //lpCurrentDirectory
