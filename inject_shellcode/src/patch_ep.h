@@ -4,23 +4,27 @@
 
 #define PAGE_SIZE 0x1000
 
-IMAGE_NT_HEADERS* get_nt_hrds(BYTE *pe_buffer)
+IMAGE_NT_HEADERS32* get_nt_hrds32(BYTE *pe_buffer)
 {
     if (pe_buffer == NULL) return NULL;
 
     IMAGE_DOS_HEADER *idh = (IMAGE_DOS_HEADER*)pe_buffer;
     if (idh->e_magic != IMAGE_DOS_SIGNATURE) {
-        return NULL;
+    return NULL;
     }
-    IMAGE_NT_HEADERS *inh = (IMAGE_NT_HEADERS *)((BYTE*)pe_buffer + idh->e_lfanew);
-    return inh;
+	
+    IMAGE_NT_HEADERS32 *inh = (IMAGE_NT_HEADERS32 *)((BYTE*)pe_buffer + idh->e_lfanew);
+    if (inh->FileHeader.Machine == IMAGE_FILE_MACHINE_I386) {
+        return inh;
+    }
+    return NULL;
 }
 
 bool is_target_injectable(BYTE* hdrs_buf)
 {
     if (hdrs_buf == NULL) return false;
 
-    IMAGE_NT_HEADERS *inh = get_nt_hrds(hdrs_buf);
+    IMAGE_NT_HEADERS32 *inh = get_nt_hrds32(hdrs_buf);
     if (inh == NULL) return false;
 
     //check if supported type
@@ -66,7 +70,7 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPVOID remote_shellcode_ptr)
     }
 
     // fetch Entry Point From headers
-    IMAGE_NT_HEADERS *inh = get_nt_hrds(hdrs_buf);
+    IMAGE_NT_HEADERS32 *inh = get_nt_hrds32(hdrs_buf);
     if (inh == NULL) return false;
 
     IMAGE_OPTIONAL_HEADER32 opt_hdr = inh->OptionalHeader;

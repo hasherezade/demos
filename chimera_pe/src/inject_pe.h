@@ -10,14 +10,6 @@
 #include "relocate.h"
 #include "load_imports.h"
 
-bool is_system32b()
-{
-    if (sizeof(LPVOID) == sizeof(DWORD)) {
-        return true;
-    }
-    return false;
-}
-
 bool run_injected_in_new_thread(HANDLE hProcess, LPVOID remote_shellcode_ptr)
 {
     NTSTATUS status = NULL;
@@ -52,14 +44,7 @@ bool inject_PE32(HANDLE hProcess, BYTE* payload, SIZE_T payload_size)
         printf("Invalid payload: %p\n", payload);
         return false;
     }
-
-    const SIZE_T kPtrSize = sizeof(LPVOID);
-    if (kPtrSize != sizeof(DWORD)) {
-        printf("System is not 32 bit\n");
-        //TODO: support 64 bit
-        return false;
-    }
-    DWORD written = 0;
+    SIZE_T written = 0;
     const LONG oldImageBase = payload_nt_hdr->OptionalHeader.ImageBase;
     DWORD payloadImageSize = payload_nt_hdr->OptionalHeader.SizeOfImage;
 

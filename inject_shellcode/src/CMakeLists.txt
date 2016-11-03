@@ -6,6 +6,7 @@ add_definitions(-DUNICODE -D_UNICODE)
 set (srcs
 	main.cpp
 	window_long_inject.cpp
+	sysutil.cpp
 )
 
 set (hdrs
@@ -23,6 +24,7 @@ set (hdrs
 	patch_context.h
 	window_long_inject.h
 	enumproc.h
+	sysutil.h
 )
 
 add_executable (Injections ${hdrs} ${srcs})

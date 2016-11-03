@@ -16,7 +16,7 @@ bool copy_pe_to_virtual_r(BYTE* payload, SIZE_T payload_size, LPVOID baseAddress
         return false;
     }
 
-    DWORD written = 0;
+    SIZE_T written = 0;
 
     //copy payload's headers:
     const DWORD kHdrsSize = payload_nt_hdr->OptionalHeader.SizeOfHeaders;

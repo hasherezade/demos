@@ -21,7 +21,7 @@ PVOID map_code_and_addresses_into_process(HANDLE hProcess, LPBYTE shellcode, SIZ
     printf("Section handle: %x\n", hSection);
 
     PVOID sectionBaseAddress = NULL;
-    SIZE_T viewSize = 0;
+    ULONG viewSize = 0;
     SECTION_INHERIT inheritDisposition = ViewShare; //VIEW_SHARE
 
     // map the section in context of current process:
