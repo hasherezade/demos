@@ -7,6 +7,7 @@ set (srcs
 	main.cpp
 	window_long_inject.cpp
 	sysutil.cpp
+	pe_hdrs_helper.cpp
 )
 
 set (hdrs
@@ -25,6 +26,7 @@ set (hdrs
 	window_long_inject.h
 	enumproc.h
 	sysutil.h
+	pe_hdrs_helper.h
 )
 
 add_executable (Injections ${hdrs} ${srcs})

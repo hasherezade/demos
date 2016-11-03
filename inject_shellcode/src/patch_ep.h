@@ -1,24 +1,8 @@
 #pragma once
 #include <stdio.h>
 #include "ntddk.h"
-
+#include "pe_hdrs_helper.h"
 #define PAGE_SIZE 0x1000
-
-IMAGE_NT_HEADERS32* get_nt_hrds32(BYTE *pe_buffer)
-{
-    if (pe_buffer == NULL) return NULL;
-
-    IMAGE_DOS_HEADER *idh = (IMAGE_DOS_HEADER*)pe_buffer;
-    if (idh->e_magic != IMAGE_DOS_SIGNATURE) {
-    return NULL;
-    }
-	
-    IMAGE_NT_HEADERS32 *inh = (IMAGE_NT_HEADERS32 *)((BYTE*)pe_buffer + idh->e_lfanew);
-    if (inh->FileHeader.Machine == IMAGE_FILE_MACHINE_I386) {
-        return inh;
-    }
-    return NULL;
-}
 
 bool is_target_injectable(BYTE* hdrs_buf)
 {
@@ -27,11 +11,6 @@ bool is_target_injectable(BYTE* hdrs_buf)
     IMAGE_NT_HEADERS32 *inh = get_nt_hrds32(hdrs_buf);
     if (inh == NULL) return false;
 
-    //check if supported type
-    if (inh->FileHeader.Machine != IMAGE_FILE_MACHINE_I386) {
-        printf("[WARNING] Not supported type! This example contains 32 bit shellcode and supports only injections to 32bit executables\n");
-        return false;
-    }
     return true;
 }
 
@@ -46,7 +25,7 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPVOID remote_shellcode_ptr)
         return false;
     }
 
-    printf("PID = 0x%p\n", pbi.UniqueProcessId);
+    printf("PID = 0x%x\n", static_cast<int>(pbi.UniqueProcessId));
 
     LPCVOID ImageBase = 0;
     SIZE_T read_bytes = 0;
@@ -76,7 +55,7 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPVOID remote_shellcode_ptr)
     IMAGE_OPTIONAL_HEADER32 opt_hdr = inh->OptionalHeader;
     DWORD ep_rva = opt_hdr.AddressOfEntryPoint;
 
-    printf("Entry Point v: %p\n", ep_rva);
+    printf("Entry Point v: %x\n", ep_rva);
     printf("shellcode ptr: %p\n", remote_shellcode_ptr);
 
     //make a buffer to store the hook code:

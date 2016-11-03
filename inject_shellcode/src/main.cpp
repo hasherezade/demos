@@ -28,7 +28,7 @@ bool inject_in_new_process(INJECTION_POINT mode)
 {
     //get target path
     WCHAR cmdLine[MAX_PATH];
-    get_default_browser(cmdLine, MAX_PATH);
+    get_calc_path(cmdLine, MAX_PATH);
 
     WCHAR startDir[MAX_PATH];
     if (!get_dir(cmdLine, startDir)) {
@@ -103,12 +103,12 @@ int main()
         }
     case TARGET_TYPE::EXISTING_PROC:
         if (inject_in_existing_process()) {
-            printf("[SUCCESS] Code injected in existing process!\n");
+            printf("[SUCCESS] Code injected into existing process!\n");
             break;
         }
     case TARGET_TYPE::NEW_PROC:
         if (inject_in_new_process(INJECTION_POINT::PATCH_EP)) {
-             printf("[SUCCESS] Code injected in a new process!\n");
+             printf("[SUCCESS] Code injected into a new process!\n");
              break;
         }
     }

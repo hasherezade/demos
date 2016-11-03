@@ -4,6 +4,8 @@
 #include <windows.h>
 #include <stdio.h>
 
+#include "pe_hdrs_helper.h"
+
 typedef BOOL(WINAPI *LPFN_ISWOW64PROCESS) (HANDLE, PBOOL);
 
 bool is_compiled_32b()
