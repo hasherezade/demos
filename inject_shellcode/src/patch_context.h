@@ -10,7 +10,7 @@ bool patch_context(HANDLE hThread, LPVOID remote_shellcode_ptr)
 
 #if defined(_WIN64)
     WOW64_CONTEXT context;
-    memset(&context, 0, sizeof(CONTEXT));
+    memset(&context, 0, sizeof(WOW64_CONTEXT));
     context.ContextFlags = CONTEXT_INTEGER;
     res = Wow64GetThreadContext(hThread, &context);
 #else	
