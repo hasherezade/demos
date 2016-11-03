@@ -38,12 +38,12 @@ int main(int argc, char *argv[])
     WCHAR targetPath[MAX_PATH];
     if (!get_calc_path(targetPath, MAX_PATH)) {
         return -1;
-    }/*
+    }
     if (!is_system32b()) {
         printf("[ERROR] Not supported! System is NOT 32 bit\n");
         system("pause");
         return (-1);
-    }*/
+    }
     if (runPE32(targetPath, res_data, res_size)) {
         printf("Injected!\n");
     } else {
