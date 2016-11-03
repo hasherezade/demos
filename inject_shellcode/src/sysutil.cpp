@@ -22,14 +22,14 @@ bool is_wow64()
     //IsWow64Process is not available on all supported versions of Windows.
     //Use GetModuleHandle to get a handle to the DLL that contains the function
     //and GetProcAddress to get a pointer to the function if available.
-    
-	fnIsWow64Process = (LPFN_ISWOW64PROCESS)GetProcAddress(GetModuleHandleA("kernel32"), "IsWow64Process");
+
+    fnIsWow64Process = (LPFN_ISWOW64PROCESS)GetProcAddress(GetModuleHandleA("kernel32"), "IsWow64Process");
     if (fnIsWow64Process == NULL) {
         return false;
     }
     if (!fnIsWow64Process(GetCurrentProcess(), &bIsWow64)) {
         return false;
-    }
+	}
     if (bIsWow64 == TRUE) {
         return  true; //64 bit
     }
@@ -42,7 +42,7 @@ bool is_system32b()
     if (!is_compiled_32b()) {
         return false;
     }
-    //check if it is running under WoW
+	//check if it is running under WoW
     if (is_wow64()) {
         return false;
     }
