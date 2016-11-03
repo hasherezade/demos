@@ -18,7 +18,7 @@ bool has_relocations(BYTE *pe_buffer)
     return true;
 }
 
-bool apply_reloc_block(BASE_RELOCATION_ENTRY *block, SIZE_T entriesNum, DWORD page, LONG oldBase, LONG newBase, PVOID modulePtr)
+bool apply_reloc_block32(BASE_RELOCATION_ENTRY *block, SIZE_T entriesNum, DWORD page, ULONGLONG oldBase, ULONGLONG newBase, PVOID modulePtr)
 {
     BASE_RELOCATION_ENTRY* entry = block;
     SIZE_T i = 0;
@@ -29,18 +29,18 @@ bool apply_reloc_block(BASE_RELOCATION_ENTRY *block, SIZE_T entriesNum, DWORD pa
             break;
         }
         if (type != RELOC_32BIT_FIELD) {
-            printf("Not supported relocations format at %d: %d\n", i, type);
+            printf("Not supported relocations format at %d: %d\n", static_cast<int>(i), type);
             return false;
         }
         DWORD* relocateAddr = (DWORD*) ((ULONG_PTR) modulePtr + page + offset);
-        (*relocateAddr) = ((*relocateAddr) - (ULONG_PTR) oldBase) + newBase;
+        (*relocateAddr) = static_cast<DWORD>((*relocateAddr) - (ULONG_PTR) oldBase) + newBase;
         entry = (BASE_RELOCATION_ENTRY*)((ULONG_PTR) entry + sizeof(WORD));
     }
-    printf("[+] Applied %d relocations\n", i);
+    printf("[+] Applied %d relocations\n", static_cast<int>(i));
     return true;
 }
 
-bool apply_relocations(LONG newBase, LONG oldBase, PVOID modulePtr)
+bool apply_relocations(ULONGLONG newBase, ULONGLONG oldBase, PVOID modulePtr)
 {
     IMAGE_DATA_DIRECTORY* relocDir = get_pe_directory(modulePtr, IMAGE_DIRECTORY_ENTRY_BASERELOC);
     if (relocDir == NULL) {
@@ -61,13 +61,13 @@ bool apply_relocations(LONG newBase, LONG oldBase, PVOID modulePtr)
             continue;
         }
 
-        printf("RelocBlock: %p %p\n", reloc->VirtualAddress, reloc->SizeOfBlock);
+        printf("RelocBlock: %x %x\n", reloc->VirtualAddress, reloc->SizeOfBlock);
         
         size_t entriesNum = (reloc->SizeOfBlock - 2 * sizeof(DWORD))  / sizeof(WORD);
         DWORD page = reloc->VirtualAddress;
 
         BASE_RELOCATION_ENTRY* block = (BASE_RELOCATION_ENTRY*)((ULONG_PTR) reloc + sizeof(DWORD) + sizeof(DWORD));
-        if (apply_reloc_block(block, entriesNum, page, oldBase, newBase, modulePtr) == false) {
+        if (apply_reloc_block32(block, entriesNum, page, oldBase, newBase, modulePtr) == false) {
             return false;
         }
     }

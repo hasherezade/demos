@@ -31,11 +31,11 @@ bool copy_pe_to_virtual_r(BYTE* payload, SIZE_T payload_size, LPVOID baseAddress
     const DWORD kOptHdrSize = payload_nt_hdr->FileHeader.SizeOfOptionalHeader;
 
     //copy all the sections, one by one:
-    secptr = LPVOID((DWORD) secptr + kOptHdrSize);
+    secptr = LPVOID((ULONGLONG) secptr + kOptHdrSize);
 
     printf("Coping sections remotely:\n");
     for (WORD i = 0; i < payload_nt_hdr->FileHeader.NumberOfSections; i++) {
-       PIMAGE_SECTION_HEADER next_sec = (PIMAGE_SECTION_HEADER)((DWORD)secptr + (IMAGE_SIZEOF_SECTION_HEADER * i));
+       PIMAGE_SECTION_HEADER next_sec = (PIMAGE_SECTION_HEADER)((ULONGLONG)secptr + (IMAGE_SIZEOF_SECTION_HEADER * i));
 
        LPVOID section_place = (BYTE*) baseAddress + next_sec->VirtualAddress;
        LPVOID section_raw_ptr = payload + next_sec->PointerToRawData;
@@ -67,11 +67,11 @@ bool copy_pe_to_virtual_l(BYTE* payload, SIZE_T payload_size, LPVOID baseAddress
     const DWORD kOptHdrSize = payload_nt_hdr->FileHeader.SizeOfOptionalHeader;
 
     //copy all the sections, one by one:
-    secptr = LPVOID((DWORD) secptr + kOptHdrSize);
+    secptr = LPVOID((ULONGLONG) secptr + kOptHdrSize);
 
     printf("Coping sections locally:\n");
     for (WORD i = 0; i < payload_nt_hdr->FileHeader.NumberOfSections; i++) {
-       PIMAGE_SECTION_HEADER next_sec = (PIMAGE_SECTION_HEADER)((DWORD)secptr + (IMAGE_SIZEOF_SECTION_HEADER * i));
+       PIMAGE_SECTION_HEADER next_sec = (PIMAGE_SECTION_HEADER)((ULONGLONG)secptr + (IMAGE_SIZEOF_SECTION_HEADER * i));
 
        LPVOID section_place = (BYTE*) baseAddress + next_sec->VirtualAddress;
        LPVOID section_raw_ptr = payload + next_sec->PointerToRawData;
