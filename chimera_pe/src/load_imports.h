@@ -52,7 +52,7 @@ bool write_handle_b32(LPCSTR lib_name, DWORD call_via, LPSTR func_name, LPVOID m
     if (hBase == NULL) return false;
 
     FARPROC hProc = GetProcAddress(hBase, func_name);
-    LPVOID call_via_ptr = (LPVOID)((DWORD)modulePtr + call_via);
+    LPVOID call_via_ptr = (LPVOID)((ULONGLONG)modulePtr + call_via);
     memcpy(call_via_ptr, &hProc, sizeof(DWORD));
     printf("proc addr: %p -> %p\n", hProc, call_via_ptr);
     return true;
@@ -61,10 +61,10 @@ bool write_handle_b32(LPCSTR lib_name, DWORD call_via, LPSTR func_name, LPVOID m
 bool solve_imported_funcs_b32(LPCSTR lib_name, DWORD call_via, DWORD thunk_addr, LPVOID modulePtr)
 {
     do {
-        LPVOID call_via_ptr = (LPVOID)((DWORD)modulePtr + call_via);
+        LPVOID call_via_ptr = (LPVOID)((ULONGLONG)modulePtr + call_via);
         if (call_via_ptr == NULL) break;
 
-        LPVOID thunk_ptr = (LPVOID)((DWORD)modulePtr + thunk_addr);
+        LPVOID thunk_ptr = (LPVOID)((ULONGLONG)modulePtr + thunk_addr);
         if (thunk_ptr == NULL) break;
 
         DWORD *thunk_val = (DWORD*)thunk_ptr;
@@ -79,7 +79,7 @@ bool solve_imported_funcs_b32(LPCSTR lib_name, DWORD call_via, DWORD thunk_addr,
             IMAGE_THUNK_DATA32* desc = (IMAGE_THUNK_DATA32*) thunk_ptr;
             if (desc->u1.Function == NULL) break;
 
-            PIMAGE_IMPORT_BY_NAME by_name = (PIMAGE_IMPORT_BY_NAME) ((DWORD)modulePtr + desc->u1.AddressOfData);
+            PIMAGE_IMPORT_BY_NAME by_name = (PIMAGE_IMPORT_BY_NAME) ((ULONGLONG) modulePtr + desc->u1.AddressOfData);
             if (desc->u1.Ordinal & IMAGE_ORDINAL_FLAG32) {
                 printf("Imports by ordinals are not supported!\n");
                 return false;
@@ -120,7 +120,7 @@ bool apply_imports(PVOID modulePtr)
         }
 
         printf("Imported Lib: %x : %x : %x\n", lib_desc->FirstThunk, lib_desc->OriginalFirstThunk, lib_desc->Name);
-        LPSTR lib_name = (LPSTR)((DWORD)modulePtr + lib_desc->Name);
+        LPSTR lib_name = (LPSTR)((ULONGLONG)modulePtr + lib_desc->Name);
         printf("name: %s\n", lib_name);
         if (!is_supported(lib_name)) {
             isAllFilled = false;

