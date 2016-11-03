@@ -51,8 +51,8 @@ int main(int argc, char *argv[])
         printf("Failed!\n");
         return -1;
     }
-    if (!is_system32b()) {
-        printf("[ERROR] Not supported! System is NOT 32 bit\n");
+    if (!is_compiled_32b()) {
+        printf("[ERROR] Not supported! Compile the loader as a 32 bit application!\n");
         system("pause");
         return (-1);
     }

@@ -100,7 +100,7 @@ bool solve_imported_funcs_b32(LPCSTR lib_name, DWORD call_via, DWORD thunk_addr,
 //fills handles of mapped pe file
 bool apply_imports(PVOID modulePtr)
 {
-    IMAGE_DATA_DIRECTORY *importsDir = get_pe_directory(modulePtr, IMAGE_DIRECTORY_ENTRY_IMPORT);
+    IMAGE_DATA_DIRECTORY *importsDir = get_pe_directory32(modulePtr, IMAGE_DIRECTORY_ENTRY_IMPORT);
     if (importsDir == NULL) return false;
 
     DWORD maxSize = importsDir->Size;

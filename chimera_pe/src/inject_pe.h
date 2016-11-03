@@ -39,7 +39,7 @@ bool inject_PE32(HANDLE hProcess, BYTE* payload, SIZE_T payload_size)
     if (!load_ntdll_functions()) return false;
 
     //check payload:
-    IMAGE_NT_HEADERS* payload_nt_hdr = get_nt_hrds(payload);
+    IMAGE_NT_HEADERS32* payload_nt_hdr = get_nt_hrds32(payload);
     if (payload_nt_hdr == NULL) {
         printf("Invalid payload: %p\n", payload);
         return false;

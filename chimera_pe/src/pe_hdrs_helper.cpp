@@ -1,6 +1,6 @@
 #include "pe_hdrs_helper.h"
 
-IMAGE_NT_HEADERS* get_nt_hrds(BYTE *pe_buffer)
+IMAGE_NT_HEADERS32* get_nt_hrds32(BYTE *pe_buffer)
 {
     if (pe_buffer == NULL) return NULL;
 
@@ -12,16 +12,16 @@ IMAGE_NT_HEADERS* get_nt_hrds(BYTE *pe_buffer)
     LONG pe_offset = idh->e_lfanew;
     if (pe_offset > kMaxOffset) return NULL;
 
-    IMAGE_NT_HEADERS *inh = (IMAGE_NT_HEADERS *)((BYTE*)pe_buffer + pe_offset);
+    IMAGE_NT_HEADERS32 *inh = (IMAGE_NT_HEADERS32 *)((BYTE*)pe_buffer + pe_offset);
     return inh;
 }
 
-IMAGE_DATA_DIRECTORY* get_pe_directory(PVOID pe_buffer, DWORD dir_id)
+IMAGE_DATA_DIRECTORY* get_pe_directory32(PVOID pe_buffer, DWORD dir_id)
 {
     if (dir_id >= IMAGE_NUMBEROF_DIRECTORY_ENTRIES) return NULL;
 
     //fetch relocation table from current image:
-    PIMAGE_NT_HEADERS nt_headers = get_nt_hrds((BYTE*) pe_buffer);
+    PIMAGE_NT_HEADERS32 nt_headers = get_nt_hrds32((BYTE*) pe_buffer);
     if (nt_headers == NULL) return NULL;
 
     IMAGE_DATA_DIRECTORY* peDir = &(nt_headers->OptionalHeader.DataDirectory[dir_id]);
