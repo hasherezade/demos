@@ -56,7 +56,7 @@ bool init_functions()
 bool write_handle_b32(HMODULE hLib, DWORD call_via,  LPSTR func_name, LPVOID modulePtr)
 {
     FARPROC hProc = (FARPROC)get_proc_addr_ptr(hLib, func_name);
-    LPVOID call_via_ptr = (LPVOID)((DWORD)modulePtr + call_via);
+    LPVOID call_via_ptr = (LPVOID)((ULONGLONG)modulePtr + call_via);
     DWORD oldProtect;
 
     virtual_protect_ptr((BYTE*)call_via_ptr, sizeof(DWORD), PAGE_EXECUTE_READWRITE, &oldProtect);
@@ -76,10 +76,10 @@ bool solve_imported_funcs_b32(LPSTR lib_name, DWORD call_via, DWORD thunk_addr, 
 
     //for other unsolved libraries, handles must be retrieved and written:
     do {
-        LPVOID call_via_ptr = (LPVOID)((DWORD)modulePtr + call_via);
+        LPVOID call_via_ptr = (LPVOID)((ULONGLONG)modulePtr + call_via);
         if (call_via_ptr == NULL) break;
 
-        LPVOID thunk_ptr = (LPVOID)((DWORD)modulePtr + thunk_addr);
+        LPVOID thunk_ptr = (LPVOID)((ULONGLONG)modulePtr + thunk_addr);
         if (thunk_ptr == NULL) break;
 
         DWORD *thunk_val = (DWORD*)thunk_ptr;
@@ -96,7 +96,7 @@ bool solve_imported_funcs_b32(LPSTR lib_name, DWORD call_via, DWORD thunk_addr, 
             IMAGE_THUNK_DATA32* desc = (IMAGE_THUNK_DATA32*) thunk_ptr;
             if (desc->u1.Function == NULL) break;
 
-            PIMAGE_IMPORT_BY_NAME by_name = (PIMAGE_IMPORT_BY_NAME) ((DWORD)modulePtr + desc->u1.AddressOfData);
+            PIMAGE_IMPORT_BY_NAME by_name = (PIMAGE_IMPORT_BY_NAME) ((ULONGLONG)modulePtr + desc->u1.AddressOfData);
             if (desc->u1.Ordinal & IMAGE_ORDINAL_FLAG32) {
                 //Imports by ordinals are not supported for now
                 return false;
@@ -115,10 +115,10 @@ bool solve_imported_funcs_b32(LPSTR lib_name, DWORD call_via, DWORD thunk_addr, 
 }
 
 //fills handles of mapped pe file
-bool apply_imports(LPVOID modulePtr=NULL)
+bool apply_imports32(LPVOID modulePtr=NULL)
 {
     if (!modulePtr) {
-        modulePtr = get_module_bgn((BYTE*)&apply_imports);
+        modulePtr = get_module_bgn((BYTE*)&apply_imports32);
         printf("Module Hndl: %p\n", modulePtr);
     }
     IMAGE_DATA_DIRECTORY *importsDir = get_pe_directory(modulePtr, IMAGE_DIRECTORY_ENTRY_IMPORT);
@@ -141,7 +141,7 @@ bool apply_imports(LPVOID modulePtr=NULL)
         }
 
         printf("Imported Lib: %x : %x : %x\n", lib_desc->FirstThunk, lib_desc->OriginalFirstThunk, lib_desc->Name);
-        LPSTR lib_name = (LPSTR)((DWORD)modulePtr + lib_desc->Name);
+        LPSTR lib_name = (LPSTR)((ULONGLONG) modulePtr + lib_desc->Name);
         printf("name: %s\n", lib_name);
 
         DWORD call_via = lib_desc->FirstThunk;
