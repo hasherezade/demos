@@ -11,7 +11,7 @@ typedef struct _BASE_RELOCATION_ENTRY {
 
 bool has_relocations(BYTE *pe_buffer)
 {
-    IMAGE_DATA_DIRECTORY* relocDir = get_pe_directory(pe_buffer, IMAGE_DIRECTORY_ENTRY_BASERELOC);
+    IMAGE_DATA_DIRECTORY* relocDir = get_pe_directory32(pe_buffer, IMAGE_DIRECTORY_ENTRY_BASERELOC);
     if (relocDir == NULL) {
         return false;
     }
@@ -42,7 +42,7 @@ bool apply_reloc_block32(BASE_RELOCATION_ENTRY *block, SIZE_T entriesNum, DWORD 
 
 bool apply_relocations(ULONGLONG newBase, ULONGLONG oldBase, PVOID modulePtr)
 {
-    IMAGE_DATA_DIRECTORY* relocDir = get_pe_directory(modulePtr, IMAGE_DIRECTORY_ENTRY_BASERELOC);
+    IMAGE_DATA_DIRECTORY* relocDir = get_pe_directory32(modulePtr, IMAGE_DIRECTORY_ENTRY_BASERELOC);
     if (relocDir == NULL) {
         printf ("Cannot relocate - application have no relocation table!\n");
         return false;

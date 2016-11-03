@@ -23,7 +23,7 @@ bool runPE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, ULONGLONG de
     if (!load_ntdll_functions()) return false;
 
     //check payload:
-    IMAGE_NT_HEADERS* payload_nt_hdr32 = get_nt_hrds(payload);
+    IMAGE_NT_HEADERS32* payload_nt_hdr32 = get_nt_hrds32(payload);
     if (payload_nt_hdr32 == NULL) {
         printf("Invalid payload: %p\n", payload);
         return false;
@@ -45,7 +45,7 @@ bool runPE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, ULONGLONG de
 
 #if defined(_WIN64)
     WOW64_CONTEXT context;
-    memset(&context, 0, sizeof(CONTEXT));
+    memset(&context, 0, sizeof(WOW64_CONTEXT));
     context.ContextFlags = CONTEXT_INTEGER;
     Wow64GetThreadContext(pi.hThread, &context);
 #else	
