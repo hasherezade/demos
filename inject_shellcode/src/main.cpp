@@ -87,15 +87,25 @@ int main()
         printf("Failed to load KERNEL32 function\n");
         return (-1);
     }
+
+    // compatibility  checks:
     if (!is_system32b()) {
-        printf("[ERROR] Not supported! System is NOT 32 bit\n");
+        printf("[WARNING] Your ystem is NOT 32 bit! Some of the methods may not work.\n");
+    }
+    if (!is_compiled_32b()) {
+        printf("[ERROR] Not supported! Compile the loader as a 32 bit application!\n");
         system("pause");
         return (-1);
     }
-    TARGET_TYPE targetType = TARGET_TYPE::NEW_PROC;
 
+    // choose the method:
+    TARGET_TYPE targetType = TARGET_TYPE::NEW_PROC;
     switch (targetType) {
     case TARGET_TYPE::TRAY_WINDOW:
+        if (!is_system32b()) {
+            printf("[ERROR] Not supported! Your ystem is NOT 32 bit!\n");
+            break;
+        }
         // this injection is more fragile, use shellcode that makes no assumptions about the context
         if (inject_into_tray(g_Shellcode, sizeof(g_Shellcode))) {
              printf("[SUCCESS] Code injected into tray window!\n");
