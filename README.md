@@ -1,5 +1,5 @@
 # demos
-Demos of various injection techniques found in malware.<br/><br/>
+Demos of various injection techniques found in malware.<br/>
 <hr/>
 To compile it, use Visual Studio and CMake: http://www.cmake.org/<br/><br/>
 <b>WARNING:</b><br/>
