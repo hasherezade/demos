@@ -4,7 +4,7 @@
 #include "pe_hdrs_helper.h"
 #define PAGE_SIZE 0x1000
 
-//get image base by a method #1:
+// Get image base by a method #1:
 LPCVOID getTargetImageBase1(HANDLE hProcess)
 {
     PROCESS_BASIC_INFORMATION pbi;
@@ -28,7 +28,10 @@ LPCVOID getTargetImageBase1(HANDLE hProcess)
     return ImageBase;
 }
 
-//get image base by a method #2:
+// Get image base by a method #2:
+// WARNING: this method of getting Image Base works only if
+// the process has been created as a SUSPENDED and didn't run yet
+// - it uses specific values of the registers, that are set only in this case.
 LPCVOID getTargetImageBase2(HANDLE hProcess, HANDLE hThread)
 {
     //get initial context of the target:
