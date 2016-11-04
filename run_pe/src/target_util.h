@@ -22,14 +22,22 @@ bool get_default_browser(LPWSTR lpwOutPath, DWORD szOutPath)
 
 bool get_calc_path(LPWSTR lpwOutPath, DWORD szOutPath)
 {
+#if defined(_WIN64)
+    ExpandEnvironmentStrings(L"%SystemRoot%\\SysWoW64\\calc.exe", lpwOutPath, szOutPath);
+#else
     ExpandEnvironmentStrings(L"%SystemRoot%\\system32\\calc.exe", lpwOutPath, szOutPath);
+#endif
     printf("%S\n", lpwOutPath );
     return true;
 }
 
 bool get_svchost_path(LPWSTR lpwOutPath, DWORD szOutPath)
 {
+#if defined(_WIN64)
+    ExpandEnvironmentStrings(L"%SystemRoot%\\SysWoW64\\svchost.exe", lpwOutPath, szOutPath);
+#else
     ExpandEnvironmentStrings(L"%SystemRoot%\\system32\\svchost.exe", lpwOutPath, szOutPath);
+#endif
     printf("%S\n", lpwOutPath );
     return true;
 }

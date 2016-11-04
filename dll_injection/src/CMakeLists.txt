@@ -5,6 +5,7 @@ add_definitions(-DUNICODE -D_UNICODE)
 
 set (srcs
     main.cpp
+	sysutil.cpp
 )
 
 set (hdrs
@@ -15,6 +16,7 @@ set (hdrs
 	enumproc.h
 	map_buffer_into_process.h
 	inject_with_loadlibrary.h
+	sysutil.h
 )
 
 set (rsrc

@@ -4,6 +4,7 @@
 #include "resource.h"
 #include "runpe.h"
 #include "target_util.h"
+#include "sysutil.h"
 
 BYTE* get_raw_payload(OUT SIZE_T &res_size)
 {

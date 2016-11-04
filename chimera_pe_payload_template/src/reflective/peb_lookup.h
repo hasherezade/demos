@@ -25,11 +25,15 @@ typedef struct _LDR_MODULE {
 inline PPEB get_peb()
 {
     LPVOID PEB = NULL;
+#if defined(_WIN64)
+    return NULL;
+#else
     __asm {
         mov eax, fs:[30h]
         mov PEB, eax
     };
     return (PPEB) PEB;
+#endif
 }
 
 inline PLDR_MODULE get_ldr_module()

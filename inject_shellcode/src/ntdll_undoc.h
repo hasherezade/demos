@@ -50,6 +50,7 @@ NTSTATUS (NTAPI  *RtlCreateUserThread) (
   OUT  PCLIENT_ID ClientID
 );
 
+
 BOOL load_ntdll_functions()
 {
     HMODULE hNtdll = GetModuleHandleA("ntdll");

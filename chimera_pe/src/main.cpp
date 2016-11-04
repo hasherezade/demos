@@ -5,6 +5,7 @@
 #include "inject_pe.h"
 #include "target_util.h"
 #include "enumproc.h"
+#include "sysutil.h"
 
 BYTE* get_raw_payload(OUT SIZE_T &res_size)
 {
@@ -50,7 +51,11 @@ int main(int argc, char *argv[])
         printf("Failed!\n");
         return -1;
     }
-
+    if (!is_compiled_32b()) {
+        printf("[ERROR] Not supported! Compile the loader as a 32 bit application!\n");
+        system("pause");
+        return (-1);
+    }
     //we may inject into existing process
     HANDLE hProcess = find_running_process(L"calc.exe");
     HANDLE mainThread = NULL;

@@ -8,8 +8,13 @@
 
 int main(int argc, char **argv)
 {
-    if (!apply_imports()) {
+#if defined(_WIN64)
+    // 64 bit not supported! Compile this program as 32bit application!
+    return -1;
+#else
+    if (!apply_imports32()) {
         return -2;
     }
     return start_actions(argc, argv);
+#endif
 }

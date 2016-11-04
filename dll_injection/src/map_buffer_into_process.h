@@ -13,17 +13,17 @@ PVOID map_buffer_into_process1(HANDLE hProcess, LPBYTE buffer, SIZE_T buffer_siz
 
     LARGE_INTEGER maxSize;
     maxSize.HighPart = 0;
-    maxSize.LowPart = buffer_size;
+    maxSize.LowPart = static_cast<DWORD>(buffer_size);
     NTSTATUS status = NULL;
     if ((status = ZwCreateSection( &hSection, SECTION_ALL_ACCESS, NULL, &maxSize, protect, SEC_COMMIT, NULL)) != STATUS_SUCCESS)
     {
         printf("[ERROR] ZwCreateSection failed, status : %x\n", status);
         return NULL;
     }
-    printf("Section handle: %x\n", hSection);
+    printf("Section handle: %p\n", hSection);
 
     PVOID sectionBaseAddress = NULL;
-    SIZE_T viewSize = 0;
+    ULONG viewSize = 0;
     SECTION_INHERIT inheritDisposition = ViewShare; //VIEW_SHARE
 
     // map the section in context of current process:

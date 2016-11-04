@@ -6,6 +6,7 @@ add_definitions(-DUNICODE -D_UNICODE)
 set (srcs
 	main.cpp
 	pe_hdrs_helper.cpp
+	sysutil.cpp
 )
 
 set (hdrs
@@ -18,6 +19,7 @@ set (hdrs
 	pe_raw_to_virtual.h
 	relocate.h
 	runpe.h
+	sysutil.h
 )
 
 set (rsrc

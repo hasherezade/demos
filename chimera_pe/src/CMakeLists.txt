@@ -6,6 +6,7 @@ add_definitions(-DUNICODE -D_UNICODE)
 set (srcs
     main.cpp
 	pe_hdrs_helper.cpp
+	sysutil.cpp
 )
 
 set (hdrs
@@ -20,6 +21,7 @@ set (hdrs
 	load_imports.h
 	relocate.h
 	inject_pe.h
+	sysutil.h
 )
 
 set (rsrc

