@@ -9,7 +9,7 @@
 int main(int argc, char **argv)
 {
 #if defined(_WIN64)
-    // 64 bit not supported! Compile this program as 32bit application!
+#error 64 bit not supported! Compile this program as 32bit application!
     return -1;
 #else
     if (!apply_imports32()) {
