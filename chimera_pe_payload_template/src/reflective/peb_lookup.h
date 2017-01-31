@@ -61,19 +61,27 @@ bool is_wanted_module(LPWSTR curr_name, LPWSTR wanted_name)
 {
     if (wanted_name == NULL || curr_name == NULL) return false;
 
-    static SIZE_T wanted_name_len = wcslen(wanted_name);
-    SIZE_T curr_name_len = wcslen(curr_name);
-    if (curr_name_len < wanted_name_len) return false;
+    WCHAR *curr_end_ptr = curr_name;
+    while (*curr_end_ptr != L'\0') {
+        curr_end_ptr++;
+    }
+    if (curr_end_ptr == curr_name) return false;
 
-    WCHAR *ptr = &(curr_name[curr_name_len - wanted_name_len]);
-    SIZE_T i = 0;
-    for (; i < wanted_name_len; i++) {
-        if (to_lowercase(ptr[i]) != to_lowercase(wanted_name[i])) {
+    WCHAR *wanted_end_ptr = wanted_name;
+    while (*wanted_end_ptr != L'\0') {
+        wanted_end_ptr++;
+    }
+    if (wanted_end_ptr == wanted_name) return false;
+
+    while ((curr_end_ptr != curr_name) && (wanted_end_ptr != wanted_name)) {
+
+        if (to_lowercase(*wanted_end_ptr) != to_lowercase(*curr_end_ptr)) {
             return false;
         }
+        wanted_end_ptr--;
+        curr_end_ptr--;
     }
-    if (i == wanted_name_len) return true;
-    return false;
+    return true;
 }
 
 LPVOID get_module_base(LPWSTR module_name)
