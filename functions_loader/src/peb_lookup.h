@@ -26,16 +26,19 @@ inline PPEB get_peb()
 {
     LPVOID PEB = NULL;
 #if defined(_WIN64)
-    return NULL;
+    return (PPEB)__readgsqword(0x60);
 #else
+    return (PPEB)__readfsdword(0x30);
+/*
+//alternative way to fetch it:
     __asm {
         mov eax, fs:[30h]
         mov PEB, eax
     };
     return (PPEB)PEB;
+*/
 #endif
 }
-
 
 inline PLDR_MODULE get_ldr_module()
 {
