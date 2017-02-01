@@ -13,8 +13,6 @@ set (srcs
 set (hdrs
 	ntddk.h
 	reflective/pe_hdrs_helper.h
-	reflective/peb_lookup.h
-	reflective/exports_lookup.h
 	reflective/reflective_imports_load.h
 	start_actions.h
 	test.h

@@ -3,7 +3,6 @@
 #include <stdio.h>
 
 #include "pe_hdrs_helper.h"
-#include "exports_lookup.h"
 
 //define functions prototypes
 typedef HMODULE (WINAPI *load_lib) (
@@ -24,7 +23,7 @@ typedef FARPROC (WINAPI* get_proc_addr) (
     );
 
 //define handles:
-LPVOID kernel32_base = NULL;
+HMODULE kernel32_base = NULL;
 load_lib load_lib_ptr = NULL;
 virtual_protect virtual_protect_ptr = NULL;
 get_proc_addr get_proc_addr_ptr = NULL;
@@ -41,16 +40,16 @@ LPVOID get_module_bgn(BYTE *start)
 
 bool init_functions()
 {
-     kernel32_base = get_module_base(L"kernel32.dll");
-     if (kernel32_base == NULL) return false;
+    kernel32_base = GetModuleHandle(L"kernel32.dll");
+    if (kernel32_base == NULL) return false;
 
-     load_lib_ptr = (load_lib) get_exported_func(kernel32_base, "LoadLibraryA");
-     virtual_protect_ptr = (virtual_protect) get_exported_func(kernel32_base, "VirtualProtect");
-     get_proc_addr_ptr = (get_proc_addr) get_exported_func(kernel32_base, "GetProcAddress");
-     if (!load_lib_ptr || !virtual_protect_ptr || !get_proc_addr_ptr) {
-         return false;
-     }
-     return true;
+    load_lib_ptr = (load_lib)GetProcAddress(kernel32_base, "LoadLibraryA");
+    virtual_protect_ptr = (virtual_protect)GetProcAddress(kernel32_base, "VirtualProtect");
+    get_proc_addr_ptr = (get_proc_addr)GetProcAddress(kernel32_base, "GetProcAddress");
+    if (!load_lib_ptr || !virtual_protect_ptr || !get_proc_addr_ptr) {
+        return false;
+    }
+    return true;
 }
 
 bool write_handle_b32(HMODULE hLib, DWORD call_via,  LPSTR func_name, LPVOID modulePtr)
