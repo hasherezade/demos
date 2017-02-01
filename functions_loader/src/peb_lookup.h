@@ -87,6 +87,7 @@ bool is_wanted_module(LPWSTR curr_name, LPWSTR wanted_name)
     }
     return true;
 }
+
 LPVOID get_module_base(LPWSTR module_name)
 {
     PLDR_MODULE curr_module = get_ldr_module();
