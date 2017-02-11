@@ -20,7 +20,9 @@ LPCVOID getTargetImageBase1(HANDLE hProcess)
 
     LPCVOID ImageBase = 0;
     SIZE_T read_bytes = 0;
-    if (!ReadProcessMemory(hProcess, (BYTE*)pbi.PebBaseAddress + 8, &ImageBase, sizeof(ImageBase), &read_bytes) && read_bytes != sizeof(ImageBase))
+    if (!ReadProcessMemory(hProcess, (BYTE*)pbi.PebBaseAddress + 8, &ImageBase, sizeof(ImageBase), &read_bytes) 
+        || read_bytes != sizeof(ImageBase)
+       )
     {
         printf("[ERROR] Cannot read from PEB - incompatibile target!\n");
         return NULL;
