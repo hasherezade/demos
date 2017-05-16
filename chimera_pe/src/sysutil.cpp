@@ -1,4 +1,3 @@
-#pragma once
 #include "sysutil.h"
 
 #include <windows.h>
