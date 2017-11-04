@@ -32,6 +32,9 @@ bool runPE32(LPWSTR targetPath, BYTE* payload, SIZE_T payload_size, ULONGLONG de
     const ULONGLONG oldImageBase = payload_nt_hdr32->OptionalHeader.ImageBase;
     SIZE_T payloadImageSize = payload_nt_hdr32->OptionalHeader.SizeOfImage;
 
+    //set subsystem always to GUI to avoid crashes:
+    payload_nt_hdr32->OptionalHeader.Subsystem = IMAGE_SUBSYSTEM_WINDOWS_GUI;
+
     //create target process:
     PROCESS_INFORMATION pi;
     if (!create_new_process1(targetPath, pi)) return false;
