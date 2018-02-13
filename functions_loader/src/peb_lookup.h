@@ -12,8 +12,8 @@ typedef struct _LDR_MODULE {
     void*   BaseAddress; // +0x18 
     void*   EntryPoint;  // +0x1c 
     ULONG   SizeOfImage; 
-    LPWSTR  FullDllName; 
-    LPWSTR  BaseDllName; 
+    UNICODE_STRING FullDllName; 
+    UNICODE_STRING BaseDllName; 
     ULONG   Flags; 
     SHORT   LoadCount; 
     SHORT   TlsIndex; 
@@ -92,7 +92,7 @@ LPVOID get_module_base(LPWSTR module_name)
 {
     PLDR_MODULE curr_module = get_ldr_module();
     while (curr_module != NULL && curr_module->BaseAddress != NULL) {
-        if (is_wanted_module(curr_module->BaseDllName, module_name)) {
+        if (is_wanted_module(curr_module->BaseDllName.Buffer, module_name)) {
             return curr_module->BaseAddress;
         }
         curr_module = (PLDR_MODULE) curr_module->InLoadOrderModuleList.Flink;
