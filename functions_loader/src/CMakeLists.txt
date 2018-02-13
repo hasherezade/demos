@@ -4,7 +4,7 @@ project (FunctionsLoader)
 add_definitions(-DUNICODE -D_UNICODE)
 
 set (srcs
-    main.cpp
+	main.cpp
 	pe_hdrs_helper.cpp
 )
 

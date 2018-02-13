@@ -4,7 +4,7 @@ project (DllInjection)
 add_definitions(-DUNICODE -D_UNICODE)
 
 set (srcs
-    main.cpp
+	main.cpp
 	sysutil.cpp
 )
 
@@ -20,7 +20,7 @@ set (hdrs
 )
 
 set (rsrc
-    resource.rc
+	resource.rc
 )
 
 add_executable (DllInjection ${rsrc} ${hdrs} ${srcs})

@@ -29,11 +29,11 @@ bool is_wow64()
     }
     if (!fnIsWow64Process(GetCurrentProcess(), &bIsWow64)) {
         return false;
-	}
+    }
     if (bIsWow64 == TRUE) {
         return  true; //64 bit
     }
-	return false; //32 bit
+    return false; //32 bit
 }
 
 bool is_system32b()
@@ -42,7 +42,7 @@ bool is_system32b()
     if (!is_compiled_32b()) {
         return false;
     }
-	//check if it is running under WoW
+    //check if it is running under WoW
     if (is_wow64()) {
         return false;
     }
