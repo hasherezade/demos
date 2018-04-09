@@ -18,17 +18,9 @@ build:
 configuration:
   - Debug
   
-environment:
-  matrix:
-    - env_arch: "x64"
-    - env_arch: "x86"
-
 build_script:
   - mkdir build
   - cd build
-  - if [%env_arch%]==[x64] (
-      cmake .. -A x64 )
-  - if [%env_arch%]==[x86] (
-      cmake .. )
+  - cmake ..
   - cmake --build .
   - cd ..
