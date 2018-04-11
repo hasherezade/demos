@@ -1,6 +1,7 @@
 # demos
 
 [![Build status](https://ci.appveyor.com/api/projects/status/4dm03v0325443lot?svg=true)](https://ci.appveyor.com/project/hasherezade/demos)
+[![License](https://img.shields.io/badge/License-BSD%202--Clause-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
 
 Demos of various injection techniques found in malware.<br/>
 <hr/>
