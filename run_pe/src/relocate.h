@@ -1,5 +1,6 @@
 #pragma once
 #include <Windows.h>
+#include <stdio.h>
 #include "pe_hdrs_helper.h"
 
 #define RELOC_32BIT_FIELD 3
