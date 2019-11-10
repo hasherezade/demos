@@ -6,5 +6,5 @@ https://github.com/hasherezade/demos/tree/master/chimera_pe_payload_template
 <hr/>
 <b>
 WARNING: This is a 32-bit version for demo purpose. See the extended version here:<br/>
-https://github.com/hasherezade/chimera_loader
+https://github.com/hasherezade/chimera_pe
 </b><hr/><br/>
