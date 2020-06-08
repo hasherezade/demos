@@ -16,7 +16,6 @@ bool add_shellcode_to_apc(HANDLE hThread, LPVOID remote_shellcode_ptr)
         printf("[ERROR] NtQueueApcThread failed, status : %x\n", status);
         return false;
     }
-    ZwSetInformationThread(hThread, ThreadTimes, 0, 0);
     return true;
 #endif
 }
