@@ -1,3 +1,4 @@
+
 cmake_minimum_required (VERSION 2.8)
 project (RunPE)
 
@@ -27,3 +28,5 @@ set (rsrc
 )
 
 add_executable (RunPE ${rsrc} ${hdrs} ${srcs})
+
+INSTALL( TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX} COMPONENT ${PROJECT_NAME} )

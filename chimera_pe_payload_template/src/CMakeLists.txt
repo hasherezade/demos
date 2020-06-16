@@ -19,3 +19,5 @@ set (hdrs
 )
 
 add_executable (ChimeraPE_Payload ${hdrs} ${srcs})
+
+INSTALL( TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX} COMPONENT ${PROJECT_NAME} )

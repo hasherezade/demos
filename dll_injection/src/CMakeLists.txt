@@ -24,3 +24,5 @@ set (rsrc
 )
 
 add_executable (DllInjection ${rsrc} ${hdrs} ${srcs})
+
+INSTALL( TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX} COMPONENT ${PROJECT_NAME} )
