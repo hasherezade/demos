@@ -23,19 +23,20 @@ NTSTATUS (NTAPI *ZwSetInformationThread) (
     IN  ULONG ThreadInformationLength
 );
 
-NTSTATUS (NTAPI *ZwCreateThreadEx) (
-    OUT  PHANDLE ThreadHandle, 
-    IN  ACCESS_MASK DesiredAccess, 
-    IN  POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL, 
+NTSTATUS(NTAPI *NtCreateThreadEx) (
+    OUT  PHANDLE ThreadHandle,
+    IN  ACCESS_MASK DesiredAccess,
+    IN  POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
     IN  HANDLE ProcessHandle,
     IN  PVOID StartRoutine,
     IN  PVOID Argument OPTIONAL,
     IN  ULONG CreateFlags,
-    IN  ULONG_PTR ZeroBits, 
+    IN  ULONG_PTR ZeroBits,
     IN  SIZE_T StackSize OPTIONAL,
-    IN  SIZE_T MaximumStackSize OPTIONAL, 
+    IN  SIZE_T MaximumStackSize OPTIONAL,
     IN  PVOID AttributeList OPTIONAL
-);
+    ) = NULL;
+
 
 NTSTATUS (NTAPI  *RtlCreateUserThread) (
   IN  HANDLE ProcessHandle,
@@ -62,8 +63,8 @@ BOOL load_ntdll_functions()
     ZwSetInformationThread = (NTSTATUS (NTAPI *)(HANDLE, THREADINFOCLASS, PVOID, ULONG)) GetProcAddress(hNtdll,"ZwSetInformationThread");
     if (ZwSetInformationThread == NULL) return FALSE;
     
-    ZwCreateThreadEx = (NTSTATUS (NTAPI *) (PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES, HANDLE, PVOID, PVOID, ULONG, ULONG_PTR, SIZE_T, SIZE_T, PVOID)) GetProcAddress(hNtdll,"ZwCreateThreadEx");
-    if (ZwCreateThreadEx == NULL) return FALSE;
+    NtCreateThreadEx = (NTSTATUS (NTAPI *) (PHANDLE, ACCESS_MASK, POBJECT_ATTRIBUTES, HANDLE, PVOID, PVOID, ULONG, ULONG_PTR, SIZE_T, SIZE_T, PVOID)) GetProcAddress(hNtdll,"NtCreateThreadEx");
+    if (NtCreateThreadEx == NULL) return FALSE;
     
     RtlCreateUserThread = (NTSTATUS (NTAPI *) (HANDLE, PSECURITY_DESCRIPTOR, BOOLEAN,ULONG, PULONG, PULONG, PVOID, PVOID, PHANDLE, PCLIENT_ID)) GetProcAddress(hNtdll,"RtlCreateUserThread");
     if (RtlCreateUserThread == NULL) return FALSE;

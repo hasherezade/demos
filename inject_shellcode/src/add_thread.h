@@ -6,7 +6,7 @@
 typedef enum {
     usingRandomMethod,
     usingCreateRemoteThread,
-    usingZwCreateThreadEx,
+    usingNtCreateThreadEx,
     usingRtlCreateUserThread,
     CREATION_METHODS_SIZE
 } THREAD_CREATION_METHOD;
@@ -34,9 +34,21 @@ bool run_shellcode_in_new_thread2(HANDLE hProcess, LPVOID remote_shellcode_ptr)
     NTSTATUS status = NULL;
     HANDLE hMyThread = NULL;
     //create a new thread for the injected code:
-    if ((status = ZwCreateThreadEx(&hMyThread, 0x1FFFFF, NULL, hProcess, remote_shellcode_ptr, NULL, CREATE_SUSPENDED, 0, 0, 0, 0)) != STATUS_SUCCESS)
+    if ((status = NtCreateThreadEx(
+        &hMyThread,
+        THREAD_ALL_ACCESS,
+        NULL,
+        hProcess,
+        (LPTHREAD_START_ROUTINE) remote_shellcode_ptr,
+        NULL,
+        CREATE_SUSPENDED, 
+        0,
+        0, 
+        0, 
+        NULL)
+    ) != STATUS_SUCCESS)
     {
-        printf("[ERROR] ZwCreateThreadEx failed, status : %x\n", status);
+        printf("[ERROR] NtCreateThreadEx failed, status : %x\n", status);
         return false;
     }
     printf("Created Thread, id = %x\n", GetThreadId(hMyThread));
@@ -76,7 +88,7 @@ bool run_shellcode_in_new_thread(HANDLE hProcess, LPVOID remote_shellcode_ptr, D
     case usingCreateRemoteThread:
         isSuccess = run_shellcode_in_new_thread1(hProcess, remote_shellcode_ptr);
         break;
-    case usingZwCreateThreadEx:
+    case usingNtCreateThreadEx:
         isSuccess = run_shellcode_in_new_thread2(hProcess, remote_shellcode_ptr);
         break;
     case usingRtlCreateUserThread:

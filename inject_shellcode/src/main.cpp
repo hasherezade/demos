@@ -72,7 +72,12 @@ bool inject_in_new_process(INJECTION_POINT mode)
 
 bool inject_in_existing_process()
 {
-    HANDLE hProcess = find_running_process(L"firefox.exe");
+    wchar_t *process_name = L"calc.exe";
+    HANDLE hProcess = find_running_process(process_name);
+    if (!hProcess) {
+        std::wcerr << "[ERROR] Process with the name: " << process_name << " not found!\n";
+        return false;
+    }
     LPVOID remote_shellcode_ptr = map_buffer_into_process1(hProcess, g_Shellcode, sizeof(g_Shellcode), PAGE_EXECUTE_READWRITE);
     if (remote_shellcode_ptr == NULL) {
         return false;
