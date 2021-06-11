@@ -22,7 +22,7 @@ PVOID map_buffer_into_process1(HANDLE hProcess, LPBYTE buffer, SIZE_T buffer_siz
     }
 
     PVOID sectionBaseAddress = NULL;
-    ULONG viewSize = 0;
+    SIZE_T viewSize = 0;
     SECTION_INHERIT inheritDisposition = ViewShare; //VIEW_SHARE
 
     // map the section in context of current process:
