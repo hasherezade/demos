@@ -9,7 +9,7 @@ branches:
     - master
   
 install:
-  - cinst cmake
+  - git submodule update --init --recursive
   - set PATH=C:\Program Files\CMake\bin;%PATH%
 
 build:
